@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fortuna - Solana Devnet Lottery</title>
+    <meta
+      name="description"
+      content="Fortuna is a Solana-native verifiable jackpot lottery demo powered by MagicBlock VRF."
+    />
+    <link rel="preload" as="image" href="assets/fortuna-relief.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar" aria-label="Fortuna header">
+      <a class="brand" href="#" aria-label="Fortuna home">
+        <span class="brand-mark" aria-hidden="true">F</span>
+        <span class="brand-word">Fortuna</span>
+      </a>
+
+      <div class="network-pill" aria-label="Network">
+        <span class="network-dot" aria-hidden="true"></span>
+        Devnet
+      </div>
+
+      <button class="wallet-button" id="walletButton" type="button">
+        Connect Wallet
+      </button>
+    </header>
+
+    <main class="page-shell">
+      <section class="round-card" aria-labelledby="roundTitle">
+        <div class="round-copy">
+          <div class="eyebrow">Active round</div>
+          <div class="round-title-line">
+            <h1 id="roundTitle">Round <span id="roundNumber">#048</span></h1>
+            <span class="status-pill status-open" id="statusPill">
+              <span class="status-dot" aria-hidden="true"></span>
+              Open
+            </span>
+          </div>
+          <p class="round-subcopy" id="roundSubcopy">
+            One ticket. Five numbers. One bonusball. Settled on-chain with
+            verifiable randomness.
+          </p>
+        </div>
+
+        <dl class="round-metrics" aria-label="Round details">
+          <div class="metric">
+            <dt>Ticket price</dt>
+            <dd><span id="ticketPrice">0.10</span> SOL</dd>
+          </div>
+          <div class="metric">
+            <dt>Tickets</dt>
+            <dd id="ticketCount">1,284</dd>
+          </div>
+          <div class="metric metric-prize">
+            <dt>Prize pool</dt>
+            <dd><span id="prizePool">128.40</span> SOL</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="draw-strip" aria-labelledby="drawTitle">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">Winning numbers</div>
+            <h2 id="drawTitle">Draw</h2>
+          </div>
+          <a
+            class="vrf-badge is-muted"
+            id="vrfBadge"
+            href="https://explorer.solana.com/?cluster=devnet"
+            target="_blank"
+            rel="noreferrer"
+          >
+            MagicBlock VRF pending
+          </a>
+        </div>
+
+        <div class="draw-stage" id="drawStage" aria-live="polite">
+          <div class="draw-placeholder">Draw pending</div>
+        </div>
+      </section>
+
+      <section class="flow-grid" aria-label="Lottery flow">
+        <article class="panel buy-panel" aria-labelledby="buyTitle">
+          <div class="panel-heading">
+            <div>
+              <div class="eyebrow">Buy ticket</div>
+              <h2 id="buyTitle">Pick numbers</h2>
+            </div>
+            <button class="secondary-button" id="quickPickButton" type="button">
+              Quick Pick
+            </button>
+          </div>
+
+          <div class="picker-group">
+            <div class="picker-label">
+              <span>Normal numbers</span>
+              <span class="count-chip" id="normalCount">0/5</span>
+            </div>
+            <div class="number-grid normal-grid" id="normalGrid"></div>
+          </div>
+
+          <div class="picker-group">
+            <div class="picker-label">
+              <span>Bonusball</span>
+              <span class="count-chip gold-chip" id="bonusCount">0/1</span>
+            </div>
+            <div class="number-grid bonus-grid" id="bonusGrid"></div>
+          </div>
+
+          <div class="ticket-summary">
+            <div>
+              <span class="summary-label">Selection</span>
+              <span class="summary-value" id="selectionSummary">None</span>
+            </div>
+            <div>
+              <span class="summary-label">Price</span>
+              <span class="summary-value mono">0.10 SOL</span>
+            </div>
+          </div>
+
+          <button class="primary-button" id="buyButton" type="button" disabled>
+            Buy Ticket
+          </button>
+          <p class="disable-reason" id="disableReason">Connect wallet to buy.</p>
+        </article>
+
+        <article class="panel result-panel" aria-labelledby="ticketTitle">
+          <div class="panel-heading">
+            <div>
+              <div class="eyebrow">My ticket</div>
+              <h2 id="ticketTitle">Result</h2>
+            </div>
+            <span class="result-state state-waiting" id="resultState">
+              No ticket
+            </span>
+          </div>
+
+          <div class="ticket-view" id="ticketView">
+            <p class="empty-state">No ticket purchased for this round.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="admin-panel" aria-labelledby="adminTitle">
+        <div class="admin-heading">
+          <div>
+            <div class="eyebrow">Devnet only</div>
+            <h2 id="adminTitle">Demo Admin Controls</h2>
+          </div>
+          <span class="admin-note">Local demo state</span>
+        </div>
+
+        <div class="admin-actions" aria-label="Admin actions">
+          <button class="admin-button" id="createRoundButton" type="button">
+            Create Round
+          </button>
+          <button class="admin-button" id="closeRoundButton" type="button">
+            Close Round
+          </button>
+          <button class="admin-button" id="requestVrfButton" type="button">
+            Request VRF
+          </button>
+          <button class="admin-button danger-admin" id="mockSettleButton" type="button">
+            Mock Settle (dev only)
+          </button>
+        </div>
+
+        <div class="scenario-row" aria-label="State previews">
+          <button class="scenario-button" data-scenario="disconnected" type="button">
+            Wallet disconnected
+          </button>
+          <button class="scenario-button" data-scenario="open" type="button">
+            Round open
+          </button>
+          <button class="scenario-button" data-scenario="closed" type="button">
+            Round closed
+          </button>
+          <button class="scenario-button" data-scenario="drawing" type="button">
+            VRF requested
+          </button>
+          <button class="scenario-button" data-scenario="win" type="button">
+            Settled win
+          </button>
+          <button class="scenario-button" data-scenario="lose" type="button">
+            Settled lose
+          </button>
+          <button class="scenario-button" data-scenario="claimed" type="button">
+            Prize claimed
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
