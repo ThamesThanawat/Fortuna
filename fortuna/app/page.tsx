@@ -142,7 +142,12 @@ function TicketBall({
   );
 }
 
-function FortunaPage() {
+const WALLET_INSTALL_URLS: Record<string, string> = {
+  Phantom: "https://phantom.app/",
+  Solflare: "https://solflare.com/",
+};
+
+function FortunaPage({ providerError }: { providerError: string | null }) {
   const { connection } = useConnection();
   const {
     publicKey,
@@ -181,6 +186,12 @@ function FortunaPage() {
     null,
   );
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [debugOpen, setDebugOpen] = useState(false);
+
+  const anyWalletInstalled = wallets.some(
+    (w) => w.readyState === WalletReadyState.Installed,
+  );
+  const displayError = walletError ?? providerError;
 
   const walletConnected = connected && publicKey !== null;
   const walletAddress = publicKey?.toBase58() ?? null;
@@ -450,15 +461,45 @@ function FortunaPage() {
           {walletMenuOpen && !walletConnected ? (
             <div className="wallet-menu" role="menu">
               <div className="wallet-menu-title">Choose wallet</div>
+              {!anyWalletInstalled ? (
+                <p className="wallet-no-wallet">
+                  No Solana wallet detected. Install{" "}
+                  <a href={WALLET_INSTALL_URLS["Phantom"]} rel="noreferrer" target="_blank">
+                    Phantom
+                  </a>{" "}
+                  or{" "}
+                  <a href={WALLET_INSTALL_URLS["Solflare"]} rel="noreferrer" target="_blank">
+                    Solflare
+                  </a>{" "}
+                  and refresh the page.
+                </p>
+              ) : null}
               {wallets.map((walletOption) => {
                 const readyLabel = walletReadyLabel(walletOption.readyState);
-                const disabled =
+                const notInstalled =
                   walletOption.readyState === WalletReadyState.Unsupported ||
                   walletOption.readyState === WalletReadyState.NotDetected;
+                const installUrl =
+                  WALLET_INSTALL_URLS[walletOption.adapter.name];
+
+                if (notInstalled && installUrl) {
+                  return (
+                    <a
+                      className="wallet-install-link"
+                      href={installUrl}
+                      key={walletOption.adapter.name}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span>{walletOption.adapter.name}</span>
+                      <span>Install →</span>
+                    </a>
+                  );
+                }
 
                 return (
                   <button
-                    disabled={disabled}
+                    disabled={notInstalled}
                     key={walletOption.adapter.name}
                     onClick={() => chooseWallet(walletOption.adapter.name)}
                     role="menuitem"
@@ -469,8 +510,8 @@ function FortunaPage() {
                   </button>
                 );
               })}
-              {walletError ? (
-                <p className="wallet-error">{walletError}</p>
+              {displayError ? (
+                <p className="wallet-error">{displayError}</p>
               ) : null}
             </div>
           ) : null}
@@ -990,6 +1031,34 @@ function FortunaPage() {
         </section>
       </main>
 
+      <div className="debug-panel">
+        <button
+          className="debug-toggle"
+          onClick={() => setDebugOpen((o) => !o)}
+          type="button"
+        >
+          {debugOpen ? "▾" : "▸"} Wallet Debug
+        </button>
+        {debugOpen ? (
+          <dl className="debug-list">
+            <dt>Network</dt>
+            <dd>Devnet</dd>
+            <dt>Wallet extension</dt>
+            <dd>{anyWalletInstalled ? "Installed" : "Not detected"}</dd>
+            <dt>Connected</dt>
+            <dd>{walletConnected ? "Yes" : "No"}</dd>
+            <dt>Public key</dt>
+            <dd className="mono">
+              {walletAddress ?? "—"}
+            </dd>
+            <dt>Last error</dt>
+            <dd className={displayError ? "debug-error" : ""}>
+              {displayError ?? "—"}
+            </dd>
+          </dl>
+        ) : null}
+      </div>
+
       {fairnessModalOpen ? (
         <div
           className="modal-backdrop"
@@ -1042,10 +1111,16 @@ export default function Home() {
     [],
   );
 
+  const [providerError, setProviderError] = useState<string | null>(null);
+
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider autoConnect wallets={wallets}>
-        <FortunaPage />
+      <WalletProvider
+        autoConnect
+        wallets={wallets}
+        onError={(error) => setProviderError(error.message)}
+      >
+        <FortunaPage providerError={providerError} />
       </WalletProvider>
     </ConnectionProvider>
   );
