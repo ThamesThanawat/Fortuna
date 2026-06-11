@@ -91,7 +91,7 @@
             <div class="ticket-preview-top">
               <span>Your Quick Pick</span>
               <button class="mini-button" id="quickPickButton" type="button">
-                Shuffle
+                Quick Pick
               </button>
             </div>
 
@@ -113,32 +113,8 @@
             </div>
           </div>
 
-          <div class="quantity-block" aria-label="Ticket quantity">
-            <div class="quantity-label">
-              <span>Tickets</span>
-              <strong id="quantityTotal">$1 total</strong>
-            </div>
-            <div class="quantity-control">
-              <button id="quantityMinus" type="button">-</button>
-              <span id="quantityValue">1</span>
-              <button id="quantityPlus" type="button">+</button>
-            </div>
-          </div>
-
-          <div class="quick-quantity-row" aria-label="Quick quantities">
-            <button class="is-selected" data-quantity="1" type="button">1</button>
-            <button data-quantity="5" type="button">5</button>
-            <button data-quantity="10" type="button">10</button>
-            <button id="customQuantityButton" type="button">Custom</button>
-          </div>
-
-          <label class="custom-quantity" id="customQuantityWrap" hidden>
-            <span>Custom ticket quantity</span>
-            <input id="customQuantityInput" inputmode="numeric" max="99" min="1" type="number" value="1" />
-          </label>
-
           <button class="primary-button play-button" id="playButton" type="button">
-            Connect Wallet to Play
+            Connect Wallet
           </button>
 
           <p class="play-note">
@@ -171,7 +147,7 @@
               <div class="ticket-summary">
                 <div>
                   <span class="summary-label">Selection</span>
-                  <span class="summary-value" id="selectionSummary">3 7 11 15 19 + 6</span>
+                  <span class="summary-value" id="selectionSummary">1 2 3 4 5 + 7</span>
                 </div>
                 <div>
                   <span class="summary-label">Price</span>
@@ -190,15 +166,13 @@
               <div class="eyebrow">Results</div>
               <h2 id="drawTitle">Winning numbers</h2>
             </div>
-            <a
+            <button
               class="vrf-badge is-muted"
               id="vrfBadge"
-              href="https://explorer.solana.com/?cluster=devnet"
-              target="_blank"
-              rel="noreferrer"
+              type="button"
             >
               MagicBlock VRF pending
-            </a>
+            </button>
           </div>
 
           <div class="draw-stage" id="drawStage" aria-live="polite">
@@ -232,9 +206,9 @@
             <li>Anyone can verify the result</li>
           </ol>
           <div class="fairness-actions">
-            <a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noreferrer">
+            <button class="verify-button" id="verifyFairnessButton" type="button">
               Verify Fairness
-            </a>
+            </button>
             <button id="fairnessGotIt" type="button">Got it</button>
           </div>
         </article>
@@ -243,16 +217,13 @@
       <section class="admin-panel" aria-labelledby="adminTitle">
         <div class="admin-heading">
           <div>
-            <div class="eyebrow">Hackathon POC</div>
+            <div class="eyebrow">HACKATHON POC</div>
             <h2 id="adminTitle">Demo Controls</h2>
           </div>
           <span class="admin-note">VRF path prepared &middot; Mock demo enabled</span>
         </div>
 
         <div class="admin-actions" aria-label="Admin actions">
-          <button class="admin-button" id="createRoundButton" type="button">
-            Create Round
-          </button>
           <button class="admin-button" id="closeRoundButton" type="button">
             Close Round
           </button>
@@ -260,35 +231,38 @@
             Request VRF
           </button>
           <button class="admin-button danger-admin" id="mockSettleButton" type="button">
-            Mock Settle (dev only)
+            Mock Settle Draw
           </button>
-        </div>
-
-        <div class="scenario-row" aria-label="State previews">
-          <button class="scenario-button" data-scenario="disconnected" type="button">
-            Wallet disconnected
-          </button>
-          <button class="scenario-button" data-scenario="open" type="button">
-            Round open
-          </button>
-          <button class="scenario-button" data-scenario="closed" type="button">
-            Round closed
-          </button>
-          <button class="scenario-button" data-scenario="drawing" type="button">
-            VRF requested
-          </button>
-          <button class="scenario-button" data-scenario="win" type="button">
-            Settled win
-          </button>
-          <button class="scenario-button" data-scenario="lose" type="button">
-            Settled lose
-          </button>
-          <button class="scenario-button" data-scenario="claimed" type="button">
-            Prize claimed
+          <button class="admin-button" id="resetDemoButton" type="button">
+            Reset Demo
           </button>
         </div>
       </section>
     </main>
+
+    <div class="modal-backdrop" id="fairnessModal" hidden role="presentation">
+      <section
+        aria-labelledby="fairnessModalTitle"
+        aria-modal="true"
+        class="fairness-modal"
+        role="dialog"
+      >
+        <div class="eyebrow">Verifiable Fairness</div>
+        <h2 id="fairnessModalTitle">Verifiable Fairness</h2>
+        <ol class="fairness-steps">
+          <li>Tickets are locked before the draw</li>
+          <li>MagicBlock VRF provides randomness</li>
+          <li>Winning numbers settle on-chain</li>
+          <li>Anyone can verify the result</li>
+        </ol>
+        <p class="modal-footer">
+          Hackathon POC &middot; Mock demo enabled &middot; VRF path prepared
+        </p>
+        <button class="primary-button modal-button" id="modalGotItButton" type="button">
+          Got it
+        </button>
+      </section>
+    </div>
 
     <script src="app.js"></script>
   </body>
