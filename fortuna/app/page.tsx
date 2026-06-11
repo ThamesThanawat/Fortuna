@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -30,10 +30,10 @@ type Ticket = {
 };
 
 const ROUND_COPY: Record<RoundStatus, string> = {
-  open: "Buy a $1 ticket. The round closes. VRF draws the winner on-chain.",
-  closed: "Ticket set locked before randomness",
-  drawing: "Requesting MagicBlock VRF randomness for on-chain settlement...",
-  settled: "Winning numbers settled for the hackathon demo.",
+  open: "Ticket-inspired jackpot experience. Verifiable draw powered by MagicBlock VRF.",
+  closed: "Ticket set locked before randomness.",
+  drawing: "Requesting MagicBlock VRF randomness for production settlement.",
+  settled: "Demo settlement complete.",
 };
 
 const STATUS_LABELS: Record<RoundStatus, string> = {
@@ -50,6 +50,9 @@ const TICKET_PRICE = 1;
 const CLAIM_AMOUNT = 270.13;
 const BUY_AMOUNT_SOL = 0.001;
 const BUY_AMOUNT_LAMPORTS = Math.round(BUY_AMOUNT_SOL * LAMPORTS_PER_SOL);
+const FIRST_PRIZE = 1_000_000;
+const DRAW_DATE = "Demo Draw · Devnet";
+const DRAW_SERIAL = "AYR-048-1284";
 const DEVNET_TREASURY_ADDRESS =
   process.env.NEXT_PUBLIC_FORTUNA_TREASURY ??
   "6JySoaKTABNQq3qLCpuAg2FXdTPAf3vZsfvghDgg6pkm";
@@ -66,10 +69,11 @@ const DEMO_WINNING_TICKET: Ticket = {
 };
 
 const TICKER_ITEMS = [
-  "0x7e...1201 bought 1 ticket",
+  "Serial AYR-048-1284 is live",
+  "Ticket-inspired jackpot experience",
   "sreckovic won $270.13",
-  "1,284 tickets this round",
-  "VRF draw pending",
+  "1,284 tickets sold",
+  "Verifiable draw powered by MagicBlock VRF",
 ];
 
 function formatUsd(value: number, cents = false) {
@@ -147,17 +151,15 @@ const WALLET_INSTALL_URLS: Record<string, string> = {
   Solflare: "https://solflare.com/",
 };
 
-function FortunaPage({ providerError }: { providerError: string | null }) {
+function AyaraPage({ providerError }: { providerError: string | null }) {
   const { connection } = useConnection();
   const {
     publicKey,
     connected,
     connecting,
-    connect,
     disconnect,
     select,
     sendTransaction,
-    wallet,
     wallets,
   } = useWallet();
   const [roundId, setRoundId] = useState(INITIAL_ROUND_ID);
@@ -178,8 +180,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
   const [fairnessAcknowledged, setFairnessAcknowledged] = useState(false);
   const [fairnessModalOpen, setFairnessModalOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
-  const [pendingWalletName, setPendingWalletName] =
-    useState<WalletName | null>(null);
+  const [walletConnecting, setWalletConnecting] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [purchasePending, setPurchasePending] = useState(false);
   const [purchaseSignature, setPurchaseSignature] = useState<string | null>(
@@ -195,28 +196,6 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
 
   const walletConnected = connected && publicKey !== null;
   const walletAddress = publicKey?.toBase58() ?? null;
-
-  useEffect(() => {
-    if (!pendingWalletName || connected || connecting) {
-      return;
-    }
-
-    if (wallet?.adapter.name !== pendingWalletName) {
-      return;
-    }
-
-    void connect()
-      .then(() => {
-        setWalletMenuOpen(false);
-        setWalletError(null);
-      })
-      .catch((error: unknown) => {
-        setWalletError(getErrorMessage(error));
-      })
-      .finally(() => {
-        setPendingWalletName(null);
-      });
-  }, [connect, connected, connecting, pendingWalletName, wallet]);
 
   const result = useMemo(() => {
     if (!myTicket || !winning) {
@@ -267,7 +246,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
     if (!hasValidNumbers) {
       return "Choose Numbers";
     }
-    return "Buy 1 Ticket - $1";
+    return "Buy 1 Ticket — $1";
   }, [
     hasPurchased,
     hasValidNumbers,
@@ -278,6 +257,18 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
 
   const selectedSummary = `${selectedNormals.length ? sortedNumbers(selectedNormals).join(" ") : "None"} + ${
     selectedBonus === null ? "-" : selectedBonus
+  }`;
+  const displayTicket: Ticket = myTicket ?? {
+    normals: sortedNumbers(selectedNormals),
+    bonus: selectedBonus ?? DEFAULT_TICKET.bonus,
+  };
+  const ticketStatusLabel = result?.didWin
+    ? "WINNING TICKET"
+    : myTicket
+      ? "ACTIVE"
+      : "READY TO PRINT";
+  const ticketId = `AYARA-${String(roundId).padStart(3, "0")}-${
+    purchaseSignature ? purchaseSignature.slice(0, 6).toUpperCase() : "DEMO01"
   }`;
 
   function setStatus(nextStatus: RoundStatus) {
@@ -308,10 +299,20 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
     setSelectedBonus(DEFAULT_TICKET.bonus);
   }
 
-  function chooseWallet(walletName: WalletName) {
+  async function chooseWallet(walletName: WalletName) {
     setWalletError(null);
+    const walletInfo = wallets.find((w) => w.adapter.name === walletName);
+    if (!walletInfo) return;
     select(walletName);
-    setPendingWalletName(walletName);
+    setWalletConnecting(true);
+    try {
+      await walletInfo.adapter.connect();
+      setWalletMenuOpen(false);
+    } catch (error) {
+      setWalletError(getErrorMessage(error));
+    } finally {
+      setWalletConnecting(false);
+    }
   }
 
   async function toggleWallet() {
@@ -410,11 +411,49 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
     setFairnessAcknowledged(false);
     setFairnessModalOpen(false);
     setWalletMenuOpen(false);
-    setPendingWalletName(null);
+    setWalletConnecting(false);
     setWalletError(null);
     setPurchasePending(false);
     setPurchaseSignature(null);
     setPurchaseError(null);
+  }
+
+  function renderTicketHeader() {
+    return (
+      <>
+        <div className="ticket-brand-row">
+          <div>
+            <span className="ticket-logo">Ayara</span>
+            <span>Ticket-Inspired Jackpot Entry</span>
+          </div>
+          <span
+            className={`ticket-status-stamp ${
+              result?.didWin ? "is-winning" : myTicket ? "is-active" : "is-preview"
+            }`}
+          >
+            {ticketStatusLabel}
+          </span>
+        </div>
+        <div className="ticket-meta-grid">
+          <div>
+            <span>Draw Date</span>
+            <strong>{DRAW_DATE}</strong>
+          </div>
+          <div>
+            <span>Ticket ID</span>
+            <strong>{ticketId}</strong>
+          </div>
+          <div>
+            <span>Ticket Price</span>
+            <strong>{formatUsd(TICKET_PRICE)}</strong>
+          </div>
+          <div>
+            <span>Ticket Serial</span>
+            <strong>{DRAW_SERIAL}</strong>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
@@ -429,21 +468,28 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
         </div>
       </div>
 
-      <header className="topbar" aria-label="Fortuna header">
-        <a className="brand" href="#" aria-label="Fortuna home">
+      <header className="topbar" aria-label="Ayara header">
+        <a className="brand" href="#" aria-label="Ayara home">
           <span className="brand-mark" aria-hidden="true">
-            F
+            A
           </span>
-          <span className="brand-word">Fortuna</span>
+          <span>
+            <span className="brand-word">Ayara</span>
+            <span className="brand-tagline">
+              A verifiable jackpot draw on Solana
+            </span>
+          </span>
         </a>
 
         <nav className="page-nav" aria-label="Page navigation">
           <a href="#play">Play</a>
-          <a href="#results">Results</a>
-          <a href="#how-it-works">How It Works</a>
+          <a href="#results">Draw Results</a>
+          <a href="#prize-tiers">Prize Tiers</a>
         </nav>
 
-        <div className="wallet-connect">
+        <div className="header-actions">
+          <span className="network-badge">Devnet</span>
+          <div className="wallet-connect">
           <button
             className={`wallet-button ${walletConnected ? "is-connected" : ""}`}
             onClick={toggleWallet}
@@ -451,7 +497,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
           >
             {walletConnected && walletAddress ? (
               <span className="mono">{shortenAddress(walletAddress)}</span>
-            ) : connecting || pendingWalletName ? (
+            ) : connecting || walletConnecting ? (
               "Connecting..."
             ) : (
               "Connect Wallet"
@@ -515,43 +561,57 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
               ) : null}
             </div>
           ) : null}
+          </div>
         </div>
       </header>
 
       <main className="page-shell">
         <section className="jackpot-hero" aria-labelledby="prizeTitle">
           <div className="hero-content">
-            <div className="hero-meta-row">
-              <span className={`status-pill status-${status}`}>
-                <span className="status-dot" aria-hidden="true" />
-                {STATUS_LABELS[status]}
-              </span>
+            <div className="ticket-stamp-row" aria-label="Current draw details">
+              <span>Serial {DRAW_SERIAL}</span>
               <span>Round #{String(roundId).padStart(3, "0")}</span>
-              <span>{ticketCount.toLocaleString("en-US")} tickets</span>
+              <span>Draw Date {DRAW_DATE}</span>
             </div>
 
-            <div className="eyebrow">Prize Pool</div>
+            <div className="eyebrow">Current Draw</div>
+            <p className="hero-prize-label">First Prize</p>
             <h1 className="prize-heading" id="prizeTitle">
-              {formatUsd(prizePool)}
+              {formatUsd(FIRST_PRIZE)}
             </h1>
-            <p className="tagline">Where luck becomes verifiable.</p>
-            <p className="protocol-line">
-              A verifiable jackpot protocol on Solana, powered by MagicBlock
-              VRF.
-            </p>
+            <p className="tagline">Demo Seeded Jackpot</p>
+
+            <div className="draw-board" aria-label="Current draw board">
+              <div>
+                <span>Tickets Sold</span>
+                <strong>{ticketCount.toLocaleString("en-US")}</strong>
+              </div>
+              <div>
+                <span>Ticket Sales</span>
+                <strong>{formatUsd(prizePool)}</strong>
+              </div>
+              <div>
+                <span>Ticket Price</span>
+                <strong>{formatUsd(TICKET_PRICE)}</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>{STATUS_LABELS[status]}</strong>
+              </div>
+            </div>
+
             <p className="round-subcopy">{ROUND_COPY[status]}</p>
-            <p className="demo-path-note">
-              VRF path prepared &middot; Mock demo enabled
-            </p>
-            <p className="demo-path-note secondary-demo-note">
-              Settlement is mocked for this hackathon demo &middot; Production
-              path: MagicBlock VRF callback
-            </p>
+
+            <div className="demo-label-row" aria-label="Demo disclosure">
+              <span>Demo settlement enabled</span>
+              <span>Settlement is mocked for hackathon reliability</span>
+              <span>Production path: MagicBlock VRF</span>
+            </div>
 
             <div className="hero-actions" aria-label="Quick links">
-              <a href="#play">Play Now</a>
-              <a href="#how-it-works">How to Play</a>
-              <a href="#results">Prize Tiers</a>
+              <a href="#play">Choose Numbers</a>
+              <a href="#results">Draw Results</a>
+              <a href="#prize-tiers">Prize Tiers</a>
             </div>
           </div>
         </section>
@@ -560,15 +620,15 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
           <article className="panel play-card">
             <div className="panel-heading">
               <div>
-                <div className="eyebrow">Play</div>
-                <h2 id="playTitle">Get your ticket</h2>
+                <div className="eyebrow">Ticket Picker</div>
+                <h2 id="playTitle">Choose Your Numbers</h2>
               </div>
-              <span className="price-pill">$1 per ticket</span>
+              <span className="price-pill">Ticket Price · $1</span>
             </div>
 
             <div className="ticket-preview" aria-label="Ticket preview">
               <div className="ticket-preview-top">
-                <span>Your Quick Pick</span>
+                <span>Main Numbers</span>
                 <button
                   className="mini-button"
                   disabled={status !== "open" || hasPurchased || purchasePending}
@@ -590,16 +650,16 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
 
               <div className="preview-meta">
                 <div>
-                  <span>Draw status</span>
+                  <span>Main Numbers</span>
+                  <strong>Pick 5</strong>
+                </div>
+                <div>
+                  <span>Bonus Ball</span>
+                  <strong>Pick 1</strong>
+                </div>
+                <div>
+                  <span>Status</span>
                   <strong>{STATUS_LABELS[status]}</strong>
-                </div>
-                <div>
-                  <span>Draw time</span>
-                  <strong>{status === "open" ? "After close" : "Pending"}</strong>
-                </div>
-                <div>
-                  <span>Ticket</span>
-                  <strong>$1</strong>
                 </div>
               </div>
             </div>
@@ -636,8 +696,8 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
             </div>
 
             <p className="play-note">
-              One ticket = one dollar. Pick numbers yourself, or let Fortuna
-              quick pick for you.
+              One ticket = one dollar. The demo transaction uses 0.001 SOL on
+              Solana Devnet.
             </p>
 
             <div className="number-drawer">
@@ -646,7 +706,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                 onClick={() => setNumbersOpen((open) => !open)}
                 type="button"
               >
-                <span>Choose numbers</span>
+                <span>Choose Your Numbers</span>
                 <strong>{numbersOpen ? "Hide" : "Open"}</strong>
               </button>
 
@@ -654,9 +714,9 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                 <div className="drawer-content">
                   <div className="picker-group">
                     <div className="picker-label">
-                      <span>Normal numbers</span>
+                      <span>Main Numbers</span>
                       <span className="count-chip">
-                        {selectedNormals.length}/5
+                        Pick 5 · {selectedNormals.length}/5
                       </span>
                     </div>
                     <div className="number-grid normal-grid">
@@ -686,9 +746,9 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
 
                   <div className="picker-group">
                     <div className="picker-label">
-                      <span>Bonusball</span>
+                      <span>Bonus Ball</span>
                       <span className="count-chip gold-chip">
-                        {selectedBonus === null ? 0 : 1}/1
+                        Pick 1 · {selectedBonus === null ? 0 : 1}/1
                       </span>
                     </div>
                     <div className="number-grid bonus-grid">
@@ -742,8 +802,10 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
           <article className="draw-strip" aria-labelledby="drawTitle">
             <div className="section-heading">
               <div>
-                <div className="eyebrow">Results</div>
-                <h2 id="drawTitle">Winning numbers</h2>
+                <div className="eyebrow">Draw Results</div>
+                <h2 id="drawTitle">
+                  {winning ? "Winning Numbers" : "Waiting for draw"}
+                </h2>
               </div>
               <button
                 className={`vrf-badge ${winning || status === "drawing" ? "" : "is-muted"}`}
@@ -751,7 +813,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                 type="button"
               >
                 {winning
-                  ? "View fairness path"
+                  ? "Demo Settlement"
                   : status === "drawing"
                     ? "MagicBlock VRF pending"
                     : "MagicBlock VRF pending"}
@@ -767,7 +829,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                 <div className="draw-pending">
                   <span className="draw-loader" aria-hidden="true" />
                   <span>
-                    Draw pending
+                    Waiting for draw
                     <strong>MagicBlock VRF pending</strong>
                   </span>
                 </div>
@@ -783,24 +845,38 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                 ))
               ) : (
                 <div className="draw-placeholder">
-                  {status === "closed" ? "Awaiting draw" : "Draw pending"}
+                  {status === "closed" ? "Waiting for draw" : "Waiting for draw"}
                 </div>
               )}
             </div>
 
             {winning ? (
-              <p className="mock-disclosure">
-                Settled by mock demo randomness
-                <span>Production path: MagicBlock VRF callback</span>
-              </p>
+              <>
+                <div className="winning-summary">
+                  <div>
+                    <span>Winning Numbers</span>
+                    <strong>{winning.normals.join(" ")}</strong>
+                  </div>
+                  <div>
+                    <span>Bonus Ball</span>
+                    <strong>{winning.bonus}</strong>
+                  </div>
+                </div>
+                <p className="mock-disclosure">
+                  Demo Settlement
+                  <span>Production path: MagicBlock VRF</span>
+                </p>
+              </>
             ) : null}
           </article>
 
           <article className="panel result-panel" aria-labelledby="ticketTitle">
             <div className="panel-heading">
               <div>
-                <div className="eyebrow">My ticket</div>
-                <h2 id="ticketTitle">Result</h2>
+                <div className="eyebrow">My Ticket</div>
+                <h2 id="ticketTitle">
+                  {result?.didWin ? "Winning Ticket" : "My Ticket"}
+                </h2>
               </div>
               <span
                 className={[
@@ -826,7 +902,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                         ? status === "drawing"
                           ? "Drawing"
                           : status === "closed"
-                            ? "Awaiting draw"
+                            ? "Waiting"
                             : "Entered"
                         : "No ticket"}
               </span>
@@ -834,20 +910,46 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
 
             <div className="ticket-view">
               {!myTicket ? (
-                <p className="empty-state">
-                  No ticket purchased for this round.
-                </p>
+                <>
+                  {renderTicketHeader()}
+                  <div className="ticket-block">
+                    <h3>Main Numbers</h3>
+                    <div className="ticket-balls">
+                      {displayTicket.normals.map((number) => (
+                        <TicketBall key={number} number={number} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ticket-block">
+                    <h3>Bonus Ball</h3>
+                    <div className="ticket-balls">
+                      <TicketBall bonus number={displayTicket.bonus} />
+                    </div>
+                  </div>
+                  <div className="barcode-strip" aria-hidden="true" />
+                  <p className="result-copy">
+                    Selected numbers preview. Buy 1 Ticket — $1 to print this
+                    ticket.
+                  </p>
+                </>
               ) : !winning ? (
                 <>
+                  {renderTicketHeader()}
                   <div className="ticket-block">
-                    <h3>Your numbers</h3>
+                    <h3>Main Numbers</h3>
                     <div className="ticket-balls">
                       {myTicket.normals.map((number) => (
                         <TicketBall key={number} number={number} />
                       ))}
+                    </div>
+                  </div>
+                  <div className="ticket-block">
+                    <h3>Bonus Ball</h3>
+                    <div className="ticket-balls">
                       <TicketBall bonus number={myTicket.bonus} />
                     </div>
                   </div>
+                  <div className="barcode-strip" aria-hidden="true" />
                   <p className="result-copy">Result unlocks after settlement.</p>
                   {purchaseSignature ? (
                     <p className="ticket-tx">
@@ -864,8 +966,9 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                 </>
               ) : result ? (
                 <>
+                  {renderTicketHeader()}
                   <div className="ticket-block">
-                    <h3>Your numbers</h3>
+                    <h3>Main Numbers</h3>
                     <div className="ticket-balls">
                       {myTicket.normals.map((number) => (
                         <TicketBall
@@ -874,6 +977,11 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                           number={number}
                         />
                       ))}
+                    </div>
+                  </div>
+                  <div className="ticket-block">
+                    <h3>Bonus Ball</h3>
+                    <div className="ticket-balls">
                       <TicketBall
                         bonus
                         match={result.bonusMatch}
@@ -882,7 +990,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                     </div>
                   </div>
                   <div className="ticket-block">
-                    <h3>Winning numbers</h3>
+                    <h3>Winning Numbers</h3>
                     <div className="ticket-balls">
                       {winning.normals.map((number) => (
                         <TicketBall
@@ -891,6 +999,11 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                           number={number}
                         />
                       ))}
+                    </div>
+                  </div>
+                  <div className="ticket-block">
+                    <h3>Bonus Ball</h3>
+                    <div className="ticket-balls">
                       <TicketBall
                         bonus
                         match={result.bonusMatch}
@@ -898,10 +1011,11 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                       />
                     </div>
                   </div>
+                  <div className="barcode-strip" aria-hidden="true" />
                   {result.didWin ? (
                     <p className="result-copy result-win-copy">
-                      <strong>WIN</strong>
-                      <span>Matched 3 numbers + bonusball</span>
+                      <strong>Winning Ticket</strong>
+                      <span>Matched 3 numbers + bonus ball</span>
                       <span>Claimable: {formatUsd(CLAIM_AMOUNT, true)}</span>
                     </p>
                   ) : (
@@ -910,8 +1024,8 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
                       match{result.normalMatches.length === 1 ? "" : "es"} and{" "}
                       <strong>
                         {result.bonusMatch
-                          ? "bonusball matched"
-                          : "bonusball missed"}
+                          ? "bonus ball matched"
+                          : "bonus ball missed"}
                       </strong>
                       .
                     </p>
@@ -960,6 +1074,29 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
           </article>
 
           <article
+            className="panel prize-card"
+            id="prize-tiers"
+            aria-labelledby="prizeTiersTitle"
+          >
+            <div className="eyebrow">Prize Tiers</div>
+            <h2 id="prizeTiersTitle">Prize Tiers</h2>
+            <ul className="prize-tier-list">
+              <li>
+                <span>5 numbers + bonus ball</span>
+                <strong>Jackpot</strong>
+              </li>
+              <li>
+                <span>5 numbers</span>
+                <strong>Second Prize</strong>
+              </li>
+              <li>
+                <span>3+ numbers OR bonus ball</span>
+                <strong>Demo Prize</strong>
+              </li>
+            </ul>
+          </article>
+
+          <article
             className="panel fairness-card"
             id="how-it-works"
             aria-labelledby="fairnessTitle"
@@ -994,11 +1131,11 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
         <section className="admin-panel" aria-labelledby="adminTitle">
           <div className="admin-heading">
             <div>
-              <div className="eyebrow">HACKATHON POC</div>
+              <div className="eyebrow">HACKATHON DEMO</div>
               <h2 id="adminTitle">Demo Controls</h2>
             </div>
             <span className="admin-note">
-              VRF path prepared &middot; Mock demo enabled
+              Demo settlement enabled &middot; Production path: MagicBlock VRF
             </span>
           </div>
 
@@ -1008,7 +1145,7 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
               onClick={() => setStatus("closed")}
               type="button"
             >
-              Close Round
+              Close Draw
             </button>
             <button
               className="admin-button"
@@ -1022,13 +1159,18 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
               onClick={mockSettle}
               type="button"
             >
-              Mock Settle Draw
+              Mock Settle
             </button>
             <button className="admin-button" onClick={resetDemo} type="button">
               Reset Demo
             </button>
           </div>
         </section>
+
+        <p className="site-disclaimer">
+          Hackathon prototype. Settlement is mocked for demo reliability.{" "}
+          <span>Production randomness path: MagicBlock VRF.</span>
+        </p>
       </main>
 
       <div className="debug-panel">
@@ -1081,8 +1223,8 @@ function FortunaPage({ providerError }: { providerError: string | null }) {
               <li>Anyone can verify the result</li>
             </ol>
             <p className="modal-footer">
-              Hackathon POC &middot; Mock demo enabled &middot; VRF path
-              prepared
+              HACKATHON DEMO &middot; Demo settlement enabled &middot;
+              Production path: MagicBlock VRF
             </p>
             <button
               className="primary-button modal-button"
@@ -1120,7 +1262,7 @@ export default function Home() {
         wallets={wallets}
         onError={(error) => setProviderError(error.message)}
       >
-        <FortunaPage providerError={providerError} />
+        <AyaraPage providerError={providerError} />
       </WalletProvider>
     </ConnectionProvider>
   );

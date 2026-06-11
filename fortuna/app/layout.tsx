@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fortuna - Solana Devnet Lottery",
+  title: "Ayara - Solana Devnet Jackpot Draw",
   description:
-    "Single-page Solana Devnet lottery demo powered by MagicBlock VRF.",
+    "Ticket-inspired Solana Devnet jackpot demo powered by MagicBlock VRF.",
 };
 
 export default function RootLayout({
