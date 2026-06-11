@@ -18,10 +18,10 @@ type Ticket = {
 };
 
 const ROUND_COPY: Record<RoundStatus, string> = {
-  open: "Ticket sales are open on Solana Devnet.",
-  closed: "Ticket sales are closed. Awaiting draw.",
-  drawing: "Requesting verifiable randomness from MagicBlock VRF...",
-  settled: "Round settled with verifiable randomness.",
+  open: "Buy a $1 ticket. The round closes. VRF draws the winner on-chain.",
+  closed: "Round closed. Awaiting the VRF draw.",
+  drawing: "Requesting MagicBlock VRF randomness for on-chain settlement...",
+  settled: "Winning numbers drawn and settled on-chain.",
 };
 
 const STATUS_LABELS: Record<RoundStatus, string> = {
@@ -40,11 +40,17 @@ const DEFAULT_TICKET: Ticket = {
   bonus: 6,
 };
 
-function formatSol(value: number) {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+const TICKER_ITEMS = [
+  "0x7e...1201 bought 1 ticket",
+  "sreckovic won $270.13",
+  "1,284 tickets this round",
+  "VRF draw pending",
+];
+
+function formatUsd(value: number) {
+  return `$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  })}`;
 }
 
 function truncateAddress(address: string) {
@@ -90,10 +96,12 @@ function TicketBall({
   number,
   bonus = false,
   match = false,
+  large = false,
 }: {
   number: number;
   bonus?: boolean;
   match?: boolean;
+  large?: boolean;
 }) {
   return (
     <span
@@ -101,6 +109,7 @@ function TicketBall({
         "ticket-ball",
         bonus ? "bonus" : "",
         match ? "match" : "",
+        large ? "large" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -115,17 +124,26 @@ export default function Home() {
   const [roundId, setRoundId] = useState(48);
   const [status, setStatusState] = useState<RoundStatus>("open");
   const [ticketCount, setTicketCount] = useState(1284);
-  const [prizePool, setPrizePool] = useState(128.4);
-  const [selectedNormals, setSelectedNormals] = useState<number[]>([]);
-  const [selectedBonus, setSelectedBonus] = useState<number | null>(null);
+  const [prizePool, setPrizePool] = useState(1284);
+  const [selectedNormals, setSelectedNormals] = useState<number[]>([
+    ...DEFAULT_TICKET.normals,
+  ]);
+  const [selectedBonus, setSelectedBonus] = useState<number | null>(
+    DEFAULT_TICKET.bonus,
+  );
   const [myTicket, setMyTicket] = useState<Ticket | null>(null);
   const [winning, setWinning] = useState<Ticket | null>(null);
   const [claimed, setClaimed] = useState(false);
   const [animationNonce, setAnimationNonce] = useState(0);
+  const [ticketQuantity, setTicketQuantity] = useState(1);
+  const [numbersOpen, setNumbersOpen] = useState(false);
+  const [customQuantityOpen, setCustomQuantityOpen] = useState(false);
+  const [fairnessAcknowledged, setFairnessAcknowledged] = useState(false);
 
-  const ticketPrice = 0.1;
-  const fixedPrize = 2.5;
+  const ticketPrice = 1;
+  const fixedPrize = 25;
   const balance = 12.482;
+  const totalPrice = ticketQuantity * ticketPrice;
 
   const result = useMemo(() => {
     if (!myTicket || !winning) {
@@ -145,30 +163,40 @@ export default function Home() {
     };
   }, [myTicket, winning]);
 
-  const canBuy =
-    walletConnected &&
-    status === "open" &&
-    selectedNormals.length === 5 &&
-    selectedBonus !== null;
+  const hasValidNumbers = selectedNormals.length === 5 && selectedBonus !== null;
+  const canBuy = walletConnected && status === "open" && hasValidNumbers;
 
-  const disableReason = useMemo(() => {
+  const playButtonLabel = useMemo(() => {
     if (!walletConnected) {
-      return "Connect wallet to buy.";
+      return "Connect Wallet to Play";
     }
     if (status === "closed") {
-      return "Round closed. Awaiting draw.";
+      return "Round Closed";
     }
     if (status === "drawing") {
-      return "Requesting verifiable randomness...";
+      return "VRF Draw Pending";
     }
     if (status === "settled") {
-      return "Round settled.";
+      return "Round Settled";
     }
-    if (selectedNormals.length !== 5 || selectedBonus === null) {
-      return "Select 5 numbers and 1 bonusball.";
+    if (!hasValidNumbers) {
+      return "Choose Numbers";
     }
-    return "";
-  }, [selectedBonus, selectedNormals.length, status, walletConnected]);
+    return `Buy ${ticketQuantity} Ticket${ticketQuantity === 1 ? "" : "s"} - ${formatUsd(
+      totalPrice,
+    )}`;
+  }, [hasValidNumbers, status, ticketQuantity, totalPrice, walletConnected]);
+
+  const selectedSummary = `${selectedNormals.length ? sortedNumbers(selectedNormals).join(" ") : "None"} + ${
+    selectedBonus === null ? "-" : selectedBonus
+  }`;
+
+  function setTicketQuantityClamped(nextQuantity: number) {
+    if (!Number.isFinite(nextQuantity)) {
+      return;
+    }
+    setTicketQuantity(Math.min(99, Math.max(1, Math.round(nextQuantity))));
+  }
 
   function setStatus(nextStatus: RoundStatus) {
     setStatusState(nextStatus);
@@ -198,7 +226,12 @@ export default function Home() {
     setSelectedBonus(Math.floor(Math.random() * 10) + 1);
   }
 
-  function buyTicket() {
+  function playTicket() {
+    if (!walletConnected) {
+      setWalletConnected(true);
+      return;
+    }
+
     if (!canBuy || selectedBonus === null) {
       return;
     }
@@ -207,8 +240,8 @@ export default function Home() {
       normals: sortedNumbers(selectedNormals),
       bonus: selectedBonus,
     });
-    setTicketCount((count) => count + 1);
-    setPrizePool((pool) => pool + ticketPrice);
+    setTicketCount((count) => count + ticketQuantity);
+    setPrizePool((pool) => pool + totalPrice);
   }
 
   function settleWithNumbers(normals: number[], bonus: number) {
@@ -234,11 +267,13 @@ export default function Home() {
     setStatusState("open");
     setTicketCount(0);
     setPrizePool(0);
-    setSelectedNormals([]);
-    setSelectedBonus(null);
+    setSelectedNormals([...DEFAULT_TICKET.normals]);
+    setSelectedBonus(DEFAULT_TICKET.bonus);
     setMyTicket(null);
     setWinning(null);
     setClaimed(false);
+    setTicketQuantity(1);
+    setNumbersOpen(false);
   }
 
   function setScenario(scenario: Scenario) {
@@ -254,6 +289,7 @@ export default function Home() {
         : null,
     );
     setClaimed(false);
+    setNumbersOpen(false);
 
     if (scenario === "disconnected" || scenario === "open") {
       setStatusState("open");
@@ -280,12 +316,18 @@ export default function Home() {
     }
   }
 
-  const selectedSummary = `${selectedNormals.length ? sortedNumbers(selectedNormals).join(" ") : "None"} + ${
-    selectedBonus === null ? "-" : selectedBonus
-  }`;
-
   return (
     <>
+      <div className="activity-ticker" aria-label="Recent activity">
+        <div className="ticker-track">
+          {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, index) => (
+            <span className="ticker-item" key={`${item}-${index}`}>
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <header className="topbar" aria-label="Fortuna header">
         <a className="brand" href="#" aria-label="Fortuna home">
           <span className="brand-mark" aria-hidden="true">
@@ -294,10 +336,11 @@ export default function Home() {
           <span className="brand-word">Fortuna</span>
         </a>
 
-        <div className="network-pill" aria-label="Network">
-          <span className="network-dot" aria-hidden="true" />
-          Devnet
-        </div>
+        <nav className="page-nav" aria-label="Page navigation">
+          <a href="#play">Play</a>
+          <a href="#results">Results</a>
+          <a href="#how-it-works">How It Works</a>
+        </nav>
 
         <button
           className={`wallet-button ${walletConnected ? "is-connected" : ""}`}
@@ -316,182 +359,303 @@ export default function Home() {
       </header>
 
       <main className="page-shell">
-        <section className="round-card" aria-labelledby="roundTitle">
-          <div className="round-copy">
-            <div className="eyebrow">Active round</div>
-            <div className="round-title-line">
-              <h1 id="roundTitle">
-                Round <span>#{String(roundId).padStart(3, "0")}</span>
-              </h1>
+        <section className="jackpot-hero" aria-labelledby="prizeTitle">
+          <div className="hero-content">
+            <div className="hero-meta-row">
               <span className={`status-pill status-${status}`}>
                 <span className="status-dot" aria-hidden="true" />
                 {STATUS_LABELS[status]}
               </span>
+              <span>Round #{String(roundId).padStart(3, "0")}</span>
+              <span>{ticketCount.toLocaleString("en-US")} tickets</span>
             </div>
+
+            <div className="eyebrow">Prize Pool</div>
+            <h1 className="prize-heading" id="prizeTitle">
+              {formatUsd(prizePool)}
+            </h1>
+            <p className="tagline">Where luck becomes verifiable.</p>
+            <p className="protocol-line">
+              A verifiable jackpot protocol on Solana, powered by MagicBlock
+              VRF.
+            </p>
             <p className="round-subcopy">{ROUND_COPY[status]}</p>
-          </div>
+            <p className="demo-path-note">
+              VRF path prepared &middot; Mock demo enabled
+            </p>
 
-          <dl className="round-metrics" aria-label="Round details">
-            <div className="metric">
-              <dt>Ticket price</dt>
-              <dd>{ticketPrice.toFixed(2)} SOL</dd>
+            <div className="hero-actions" aria-label="Quick links">
+              <a href="#play">Play Now</a>
+              <a href="#how-it-works">How to Play</a>
+              <a href="#results">Prize Tiers</a>
             </div>
-            <div className="metric">
-              <dt>Tickets</dt>
-              <dd>{ticketCount.toLocaleString("en-US")}</dd>
-            </div>
-            <div className="metric metric-prize">
-              <dt>Prize pool</dt>
-              <dd>{formatSol(prizePool)} SOL</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="draw-strip" aria-labelledby="drawTitle">
-          <div className="section-heading">
-            <div>
-              <div className="eyebrow">Winning numbers</div>
-              <h2 id="drawTitle">Draw</h2>
-            </div>
-            <a
-              className={`vrf-badge ${winning || status === "drawing" ? "" : "is-muted"}`}
-              href={winning ? PROOF_TX : "https://explorer.solana.com/?cluster=devnet"}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {winning
-                ? "Verified by MagicBlock VRF"
-                : status === "drawing"
-                  ? "MagicBlock VRF requested"
-                  : status === "closed"
-                    ? "MagicBlock VRF ready"
-                    : "MagicBlock VRF pending"}
-            </a>
-          </div>
-
-          <div
-            className="draw-stage"
-            aria-live="polite"
-            data-animation={animationNonce}
-          >
-            {status === "drawing" ? (
-              <div className="draw-pending">
-                <span className="draw-loader" aria-hidden="true" />
-                <span>Requesting verifiable randomness...</span>
-              </div>
-            ) : winning ? (
-              [...winning.normals, winning.bonus].map((number, index) => (
-                <span
-                  className={`draw-ball ${index === 5 ? "bonus" : ""}`}
-                  key={`${animationNonce}-${number}-${index}`}
-                  style={{ animationDelay: `${index * 190}ms` }}
-                >
-                  {number}
-                </span>
-              ))
-            ) : (
-              <div className="draw-placeholder">
-                {status === "closed" ? "Awaiting draw" : "Draw pending"}
-              </div>
-            )}
           </div>
         </section>
 
-        <section className="flow-grid" aria-label="Lottery flow">
-          <article className="panel buy-panel" aria-labelledby="buyTitle">
+        <section className="play-section" id="play" aria-labelledby="playTitle">
+          <article className="panel play-card">
             <div className="panel-heading">
               <div>
-                <div className="eyebrow">Buy ticket</div>
-                <h2 id="buyTitle">Pick numbers</h2>
+                <div className="eyebrow">Play</div>
+                <h2 id="playTitle">Get your ticket</h2>
               </div>
+              <span className="price-pill">$1 per ticket</span>
+            </div>
+
+            <div className="ticket-preview" aria-label="Ticket preview">
+              <div className="ticket-preview-top">
+                <span>Your Quick Pick</span>
+                <button
+                  className="mini-button"
+                  disabled={status !== "open"}
+                  onClick={quickPick}
+                  type="button"
+                >
+                  Shuffle
+                </button>
+              </div>
+
+              <div className="preview-balls">
+                {selectedNormals.map((number) => (
+                  <TicketBall key={number} large number={number} />
+                ))}
+                {selectedBonus !== null ? (
+                  <TicketBall bonus large number={selectedBonus} />
+                ) : null}
+              </div>
+
+              <div className="preview-meta">
+                <div>
+                  <span>Draw status</span>
+                  <strong>{STATUS_LABELS[status]}</strong>
+                </div>
+                <div>
+                  <span>Draw time</span>
+                  <strong>{status === "open" ? "After close" : "Pending"}</strong>
+                </div>
+                <div>
+                  <span>Ticket</span>
+                  <strong>$1</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="quantity-block" aria-label="Ticket quantity">
+              <div className="quantity-label">
+                <span>Tickets</span>
+                <strong>{formatUsd(totalPrice)} total</strong>
+              </div>
+              <div className="quantity-control">
+                <button
+                  onClick={() => setTicketQuantityClamped(ticketQuantity - 1)}
+                  type="button"
+                >
+                  -
+                </button>
+                <span>{ticketQuantity}</span>
+                <button
+                  onClick={() => setTicketQuantityClamped(ticketQuantity + 1)}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="quick-quantity-row" aria-label="Quick quantities">
+              {[1, 5, 10].map((quantity) => (
+                <button
+                  className={ticketQuantity === quantity ? "is-selected" : ""}
+                  key={quantity}
+                  onClick={() => {
+                    setCustomQuantityOpen(false);
+                    setTicketQuantityClamped(quantity);
+                  }}
+                  type="button"
+                >
+                  {quantity}
+                </button>
+              ))}
               <button
-                className="secondary-button"
-                disabled={status !== "open"}
-                onClick={quickPick}
+                className={customQuantityOpen ? "is-selected" : ""}
+                onClick={() => setCustomQuantityOpen((open) => !open)}
                 type="button"
               >
-                Quick Pick
+                Custom
               </button>
             </div>
 
-            <div className="picker-group">
-              <div className="picker-label">
-                <span>Normal numbers</span>
-                <span className="count-chip">{selectedNormals.length}/5</span>
-              </div>
-              <div className="number-grid normal-grid">
-                {Array.from({ length: 20 }, (_, index) => index + 1).map(
-                  (number) => {
-                    const selected = selectedNormals.includes(number);
-                    return (
-                      <button
-                        aria-pressed={selected}
-                        className={`number-button ${selected ? "selected" : ""}`}
-                        disabled={status !== "open"}
-                        key={number}
-                        onClick={() => toggleNormal(number)}
-                        type="button"
-                      >
-                        {number}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </div>
-
-            <div className="picker-group">
-              <div className="picker-label">
-                <span>Bonusball</span>
-                <span className="count-chip gold-chip">
-                  {selectedBonus === null ? 0 : 1}/1
-                </span>
-              </div>
-              <div className="number-grid bonus-grid">
-                {Array.from({ length: 10 }, (_, index) => index + 1).map(
-                  (number) => {
-                    const selected = selectedBonus === number;
-                    return (
-                      <button
-                        aria-pressed={selected}
-                        className={`number-button bonus ${selected ? "selected" : ""}`}
-                        disabled={status !== "open"}
-                        key={number}
-                        onClick={() =>
-                          setSelectedBonus((current) =>
-                            current === number ? null : number,
-                          )
-                        }
-                        type="button"
-                      >
-                        {number}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </div>
-
-            <div className="ticket-summary">
-              <div>
-                <span className="summary-label">Selection</span>
-                <span className="summary-value">{selectedSummary}</span>
-              </div>
-              <div>
-                <span className="summary-label">Price</span>
-                <span className="summary-value mono">0.10 SOL</span>
-              </div>
-            </div>
+            {customQuantityOpen ? (
+              <label className="custom-quantity">
+                <span>Custom ticket quantity</span>
+                <input
+                  inputMode="numeric"
+                  max={99}
+                  min={1}
+                  onChange={(event) =>
+                    setTicketQuantityClamped(Number(event.target.value))
+                  }
+                  type="number"
+                  value={ticketQuantity}
+                />
+              </label>
+            ) : null}
 
             <button
-              className="primary-button"
-              disabled={!canBuy}
-              onClick={buyTicket}
+              className="primary-button play-button"
+              disabled={walletConnected && !canBuy}
+              onClick={playTicket}
               type="button"
             >
-              Buy Ticket
+              {playButtonLabel}
             </button>
-            <p className="disable-reason">{disableReason}</p>
+
+            <p className="play-note">
+              One ticket = one dollar. Pick numbers yourself, or let Fortuna
+              quick pick for you.
+            </p>
+
+            <div className="number-drawer">
+              <button
+                className="drawer-toggle"
+                onClick={() => setNumbersOpen((open) => !open)}
+                type="button"
+              >
+                <span>Choose numbers</span>
+                <strong>{numbersOpen ? "Hide" : "Open"}</strong>
+              </button>
+
+              {numbersOpen ? (
+                <div className="drawer-content">
+                  <div className="picker-group">
+                    <div className="picker-label">
+                      <span>Normal numbers</span>
+                      <span className="count-chip">
+                        {selectedNormals.length}/5
+                      </span>
+                    </div>
+                    <div className="number-grid normal-grid">
+                      {Array.from({ length: 20 }, (_, index) => index + 1).map(
+                        (number) => {
+                          const selected = selectedNormals.includes(number);
+                          return (
+                            <button
+                              aria-pressed={selected}
+                              className={`number-button ${selected ? "selected" : ""}`}
+                              disabled={status !== "open"}
+                              key={number}
+                              onClick={() => toggleNormal(number)}
+                              type="button"
+                            >
+                              {number}
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="picker-group">
+                    <div className="picker-label">
+                      <span>Bonusball</span>
+                      <span className="count-chip gold-chip">
+                        {selectedBonus === null ? 0 : 1}/1
+                      </span>
+                    </div>
+                    <div className="number-grid bonus-grid">
+                      {Array.from({ length: 10 }, (_, index) => index + 1).map(
+                        (number) => {
+                          const selected = selectedBonus === number;
+                          return (
+                            <button
+                              aria-pressed={selected}
+                              className={`number-button bonus ${selected ? "selected" : ""}`}
+                              disabled={status !== "open"}
+                              key={number}
+                              onClick={() =>
+                                setSelectedBonus((current) =>
+                                  current === number ? null : number,
+                                )
+                              }
+                              type="button"
+                            >
+                              {number}
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="ticket-summary">
+                    <div>
+                      <span className="summary-label">Selection</span>
+                      <span className="summary-value">{selectedSummary}</span>
+                    </div>
+                    <div>
+                      <span className="summary-label">Price</span>
+                      <span className="summary-value mono">
+                        {formatUsd(totalPrice)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </article>
+        </section>
+
+        <section className="results-section" id="results" aria-label="Results">
+          <article className="draw-strip" aria-labelledby="drawTitle">
+            <div className="section-heading">
+              <div>
+                <div className="eyebrow">Results</div>
+                <h2 id="drawTitle">Winning numbers</h2>
+              </div>
+              <a
+                className={`vrf-badge ${winning || status === "drawing" ? "" : "is-muted"}`}
+                href={
+                  winning ? PROOF_TX : "https://explorer.solana.com/?cluster=devnet"
+                }
+                target="_blank"
+                rel="noreferrer"
+              >
+                {winning
+                  ? "Verified by MagicBlock VRF"
+                  : status === "drawing"
+                    ? "MagicBlock VRF requested"
+                    : status === "closed"
+                      ? "MagicBlock VRF ready"
+                      : "MagicBlock VRF pending"}
+              </a>
+            </div>
+
+            <div
+              className="draw-stage"
+              aria-live="polite"
+              data-animation={animationNonce}
+            >
+              {status === "drawing" ? (
+                <div className="draw-pending">
+                  <span className="draw-loader" aria-hidden="true" />
+                  <span>Requesting verifiable randomness...</span>
+                </div>
+              ) : winning ? (
+                [...winning.normals, winning.bonus].map((number, index) => (
+                  <span
+                    className={`draw-ball ${index === 5 ? "bonus" : ""}`}
+                    key={`${animationNonce}-${number}-${index}`}
+                    style={{ animationDelay: `${index * 190}ms` }}
+                  >
+                    {number}
+                  </span>
+                ))
+              ) : (
+                <div className="draw-placeholder">
+                  {status === "closed" ? "Awaiting draw" : "Draw pending"}
+                </div>
+              )}
+            </div>
           </article>
 
           <article className="panel result-panel" aria-labelledby="ticketTitle">
@@ -599,13 +763,13 @@ export default function Home() {
                       <div className="claim-row">
                         <span className="claimed-mark">Prize claimed</span>
                         <span className="claim-amount">
-                          {fixedPrize.toFixed(3)} SOL
+                          {formatUsd(fixedPrize)}
                         </span>
                       </div>
                     ) : (
                       <div className="claim-row">
                         <span className="claim-amount">
-                          {fixedPrize.toFixed(3)} SOL
+                          {formatUsd(fixedPrize)}
                         </span>
                         <button
                           className="claim-button"
@@ -621,15 +785,44 @@ export default function Home() {
               ) : null}
             </div>
           </article>
+
+          <article
+            className="panel fairness-card"
+            id="how-it-works"
+            aria-labelledby="fairnessTitle"
+          >
+            <div className="eyebrow">How It Works</div>
+            <h2 id="fairnessTitle">Verifiable Fairness</h2>
+            <ol className="fairness-steps">
+              <li>Tickets are locked before the draw</li>
+              <li>MagicBlock VRF provides randomness</li>
+              <li>Winning numbers settle on-chain</li>
+              <li>Anyone can verify the result</li>
+            </ol>
+            <div className="fairness-actions">
+              <a href={PROOF_TX} target="_blank" rel="noreferrer">
+                Verify Fairness
+              </a>
+              <button
+                className={fairnessAcknowledged ? "is-acknowledged" : ""}
+                onClick={() => setFairnessAcknowledged(true)}
+                type="button"
+              >
+                {fairnessAcknowledged ? "Noted" : "Got it"}
+              </button>
+            </div>
+          </article>
         </section>
 
         <section className="admin-panel" aria-labelledby="adminTitle">
           <div className="admin-heading">
             <div>
-              <div className="eyebrow">Devnet only</div>
-              <h2 id="adminTitle">Demo Admin Controls</h2>
+              <div className="eyebrow">Hackathon POC</div>
+              <h2 id="adminTitle">Demo Controls</h2>
             </div>
-            <span className="admin-note">Local demo state</span>
+            <span className="admin-note">
+              VRF path prepared &middot; Mock demo enabled
+            </span>
           </div>
 
           <div className="admin-actions" aria-label="Admin actions">

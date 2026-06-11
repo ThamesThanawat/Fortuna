@@ -1,62 +1,88 @@
 const ROUND_COPY = {
-  open: "Ticket sales are open on Solana Devnet.",
-  closed: "Ticket sales are closed. Awaiting draw.",
-  drawing: "Requesting verifiable randomness from MagicBlock VRF...",
-  settled: "Round settled with verifiable randomness."
+  open: "Buy a $1 ticket. The round closes. VRF draws the winner on-chain.",
+  closed: "Round closed. Awaiting the VRF draw.",
+  drawing: "Requesting MagicBlock VRF randomness for on-chain settlement...",
+  settled: "Winning numbers drawn and settled on-chain."
+};
+
+const STATUS_LABELS = {
+  open: "Open",
+  closed: "Closed",
+  drawing: "VRF Requested",
+  settled: "Settled"
 };
 
 const DEMO_ADDRESS = "7fK2MZJq5W4b1xR3NDmNf9sMZPaV8HqRcU91";
 const PROOF_TX =
   "https://explorer.solana.com/tx/5mAGicB1ockVRFProof111111111111111111111111111111?cluster=devnet";
+const DEFAULT_TICKET = {
+  normals: [3, 7, 11, 15, 19],
+  bonus: 6
+};
 
 const state = {
   walletConnected: false,
   roundId: 48,
   status: "open",
-  ticketPrice: 0.1,
+  ticketPrice: 1,
   ticketCount: 1284,
-  prizePool: 128.4,
-  selectedNormals: [],
-  selectedBonus: null,
+  prizePool: 1284,
+  selectedNormals: [...DEFAULT_TICKET.normals],
+  selectedBonus: DEFAULT_TICKET.bonus,
   myTicket: null,
   winning: null,
   claimed: false,
   balance: 12.482,
-  fixedPrize: 2.5,
+  fixedPrize: 25,
+  ticketQuantity: 1,
+  numbersOpen: false,
+  customQuantityOpen: false,
   animationNonce: 0
 };
 
 const els = {
   walletButton: document.querySelector("#walletButton"),
-  roundNumber: document.querySelector("#roundNumber"),
   statusPill: document.querySelector("#statusPill"),
-  roundSubcopy: document.querySelector("#roundSubcopy"),
-  ticketPrice: document.querySelector("#ticketPrice"),
-  ticketCount: document.querySelector("#ticketCount"),
+  roundNumber: document.querySelector("#roundNumber"),
+  ticketCountHero: document.querySelector("#ticketCountHero"),
   prizePool: document.querySelector("#prizePool"),
-  vrfBadge: document.querySelector("#vrfBadge"),
-  drawStage: document.querySelector("#drawStage"),
+  roundSubcopy: document.querySelector("#roundSubcopy"),
+  previewBalls: document.querySelector("#previewBalls"),
+  previewStatus: document.querySelector("#previewStatus"),
+  previewTime: document.querySelector("#previewTime"),
+  quickPickButton: document.querySelector("#quickPickButton"),
+  quantityMinus: document.querySelector("#quantityMinus"),
+  quantityPlus: document.querySelector("#quantityPlus"),
+  quantityValue: document.querySelector("#quantityValue"),
+  quantityTotal: document.querySelector("#quantityTotal"),
+  customQuantityButton: document.querySelector("#customQuantityButton"),
+  customQuantityWrap: document.querySelector("#customQuantityWrap"),
+  customQuantityInput: document.querySelector("#customQuantityInput"),
+  playButton: document.querySelector("#playButton"),
+  numbersToggle: document.querySelector("#numbersToggle"),
+  numbersToggleLabel: document.querySelector("#numbersToggleLabel"),
+  drawerContent: document.querySelector("#drawerContent"),
   normalGrid: document.querySelector("#normalGrid"),
   bonusGrid: document.querySelector("#bonusGrid"),
   normalCount: document.querySelector("#normalCount"),
   bonusCount: document.querySelector("#bonusCount"),
-  quickPickButton: document.querySelector("#quickPickButton"),
   selectionSummary: document.querySelector("#selectionSummary"),
-  buyButton: document.querySelector("#buyButton"),
-  disableReason: document.querySelector("#disableReason"),
+  ticketSummaryPrice: document.querySelector("#ticketSummaryPrice"),
+  vrfBadge: document.querySelector("#vrfBadge"),
+  drawStage: document.querySelector("#drawStage"),
   resultState: document.querySelector("#resultState"),
   ticketView: document.querySelector("#ticketView"),
+  fairnessGotIt: document.querySelector("#fairnessGotIt"),
   createRoundButton: document.querySelector("#createRoundButton"),
   closeRoundButton: document.querySelector("#closeRoundButton"),
   requestVrfButton: document.querySelector("#requestVrfButton"),
   mockSettleButton: document.querySelector("#mockSettleButton")
 };
 
-function formatSol(value) {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+function formatUsd(value) {
+  return `$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 0
+  })}`;
 }
 
 function truncateAddress(address) {
@@ -79,6 +105,14 @@ function pickUnique(count, max) {
   return sortedNumbers(chosen);
 }
 
+function setTicketQuantity(quantity) {
+  if (!Number.isFinite(quantity)) {
+    return;
+  }
+  state.ticketQuantity = Math.min(99, Math.max(1, Math.round(quantity)));
+  render();
+}
+
 function setStatus(status) {
   state.status = status;
   if (status !== "settled") {
@@ -86,31 +120,6 @@ function setStatus(status) {
     state.claimed = false;
   }
   render();
-}
-
-function createNumberButtons() {
-  for (let number = 1; number <= 20; number += 1) {
-    const button = document.createElement("button");
-    button.className = "number-button";
-    button.type = "button";
-    button.textContent = number;
-    button.dataset.number = String(number);
-    button.addEventListener("click", () => toggleNormal(number));
-    els.normalGrid.append(button);
-  }
-
-  for (let number = 1; number <= 10; number += 1) {
-    const button = document.createElement("button");
-    button.className = "number-button bonus";
-    button.type = "button";
-    button.textContent = number;
-    button.dataset.bonus = String(number);
-    button.addEventListener("click", () => {
-      state.selectedBonus = state.selectedBonus === number ? null : number;
-      render();
-    });
-    els.bonusGrid.append(button);
-  }
 }
 
 function toggleNormal(number) {
@@ -134,20 +143,6 @@ function quickPick() {
   render();
 }
 
-function buyTicket() {
-  if (!canBuy()) {
-    return;
-  }
-
-  state.myTicket = {
-    normals: sortedNumbers(state.selectedNormals),
-    bonus: state.selectedBonus
-  };
-  state.ticketCount += 1;
-  state.prizePool += state.ticketPrice;
-  render();
-}
-
 function canBuy() {
   return (
     state.walletConnected &&
@@ -157,23 +152,24 @@ function canBuy() {
   );
 }
 
-function getDisableReason() {
+function playTicket() {
   if (!state.walletConnected) {
-    return "Connect wallet to buy.";
+    state.walletConnected = true;
+    render();
+    return;
   }
-  if (state.status === "closed") {
-    return "Round closed. Awaiting draw.";
+
+  if (!canBuy()) {
+    return;
   }
-  if (state.status === "drawing") {
-    return "Requesting verifiable randomness...";
-  }
-  if (state.status === "settled") {
-    return "Round settled.";
-  }
-  if (state.selectedNormals.length !== 5 || state.selectedBonus === null) {
-    return "Select 5 numbers and 1 bonusball.";
-  }
-  return "";
+
+  state.myTicket = {
+    normals: sortedNumbers(state.selectedNormals),
+    bonus: state.selectedBonus
+  };
+  state.ticketCount += state.ticketQuantity;
+  state.prizePool += state.ticketQuantity * state.ticketPrice;
+  render();
 }
 
 function settleWithNumbers(normals, bonus) {
@@ -215,23 +211,16 @@ function makeWinningForTicket(ticket, shouldWin) {
 }
 
 function setScenario(scenario) {
-  const defaultTicket = {
-    normals: [3, 7, 11, 15, 19],
-    bonus: 6
-  };
-
   state.walletConnected = scenario !== "disconnected";
-  state.selectedNormals = [...defaultTicket.normals];
-  state.selectedBonus = defaultTicket.bonus;
+  state.selectedNormals = [...DEFAULT_TICKET.normals];
+  state.selectedBonus = DEFAULT_TICKET.bonus;
   state.myTicket = ["win", "lose", "claimed"].includes(scenario)
-    ? { normals: [...defaultTicket.normals], bonus: defaultTicket.bonus }
+    ? { normals: [...DEFAULT_TICKET.normals], bonus: DEFAULT_TICKET.bonus }
     : null;
   state.claimed = false;
+  state.numbersOpen = false;
 
-  if (scenario === "disconnected") {
-    state.status = "open";
-    state.winning = null;
-  } else if (scenario === "open") {
+  if (scenario === "disconnected" || scenario === "open") {
     state.status = "open";
     state.winning = null;
   } else if (scenario === "closed") {
@@ -242,15 +231,15 @@ function setScenario(scenario) {
     state.winning = null;
   } else if (scenario === "win") {
     state.status = "settled";
-    state.winning = makeWinningForTicket(defaultTicket, true);
+    state.winning = makeWinningForTicket(DEFAULT_TICKET, true);
     state.animationNonce += 1;
   } else if (scenario === "lose") {
     state.status = "settled";
-    state.winning = makeWinningForTicket(defaultTicket, false);
+    state.winning = makeWinningForTicket(DEFAULT_TICKET, false);
     state.animationNonce += 1;
   } else if (scenario === "claimed") {
     state.status = "settled";
-    state.winning = makeWinningForTicket(defaultTicket, true);
+    state.winning = makeWinningForTicket(DEFAULT_TICKET, true);
     state.claimed = true;
     state.animationNonce += 1;
   }
@@ -263,11 +252,13 @@ function createRound() {
   state.status = "open";
   state.ticketCount = 0;
   state.prizePool = 0;
-  state.selectedNormals = [];
-  state.selectedBonus = null;
+  state.selectedNormals = [...DEFAULT_TICKET.normals];
+  state.selectedBonus = DEFAULT_TICKET.bonus;
   state.myTicket = null;
   state.winning = null;
   state.claimed = false;
+  state.ticketQuantity = 1;
+  state.numbersOpen = false;
   render();
 }
 
@@ -293,6 +284,7 @@ function ballHtml(number, options = {}) {
   const classes = ["ticket-ball"];
   if (options.bonus) classes.push("bonus");
   if (options.match) classes.push("match");
+  if (options.large) classes.push("large");
   return `<span class="${classes.join(" ")}">${number}</span>`;
 }
 
@@ -310,21 +302,63 @@ function renderHeader() {
   els.walletButton.textContent = "Connect Wallet";
 }
 
-function renderRound() {
-  const labels = {
-    open: "Open",
-    closed: "Closed",
-    drawing: "VRF Requested",
-    settled: "Settled"
-  };
-
+function renderHero() {
   els.roundNumber.textContent = `#${String(state.roundId).padStart(3, "0")}`;
+  els.ticketCountHero.textContent = state.ticketCount.toLocaleString("en-US");
+  els.prizePool.textContent = formatUsd(state.prizePool);
   els.roundSubcopy.textContent = ROUND_COPY[state.status];
-  els.ticketPrice.textContent = state.ticketPrice.toFixed(2);
-  els.ticketCount.textContent = state.ticketCount.toLocaleString("en-US");
-  els.prizePool.textContent = formatSol(state.prizePool);
   els.statusPill.className = `status-pill status-${state.status}`;
-  els.statusPill.innerHTML = `<span class="status-dot" aria-hidden="true"></span>${labels[state.status]}`;
+  els.statusPill.innerHTML = `<span class="status-dot" aria-hidden="true"></span>${STATUS_LABELS[state.status]}`;
+}
+
+function renderPlayCard() {
+  const totalPrice = state.ticketQuantity * state.ticketPrice;
+  const hasValidNumbers =
+    state.selectedNormals.length === 5 && state.selectedBonus !== null;
+
+  els.previewBalls.innerHTML = `
+    ${state.selectedNormals.map((number) => ballHtml(number, { large: true })).join("")}
+    ${state.selectedBonus !== null ? ballHtml(state.selectedBonus, { bonus: true, large: true }) : ""}
+  `;
+  els.previewStatus.textContent = STATUS_LABELS[state.status];
+  els.previewTime.textContent = state.status === "open" ? "After close" : "Pending";
+  els.quantityValue.textContent = String(state.ticketQuantity);
+  els.quantityTotal.textContent = `${formatUsd(totalPrice)} total`;
+  els.customQuantityWrap.hidden = !state.customQuantityOpen;
+  els.customQuantityInput.value = String(state.ticketQuantity);
+  els.drawerContent.hidden = !state.numbersOpen;
+  els.numbersToggleLabel.textContent = state.numbersOpen ? "Hide" : "Open";
+  els.normalCount.textContent = `${state.selectedNormals.length}/5`;
+  els.bonusCount.textContent = `${state.selectedBonus === null ? 0 : 1}/1`;
+  els.selectionSummary.textContent = `${
+    state.selectedNormals.length ? sortedNumbers(state.selectedNormals).join(" ") : "None"
+  } + ${state.selectedBonus === null ? "-" : state.selectedBonus}`;
+  els.ticketSummaryPrice.textContent = formatUsd(totalPrice);
+  els.playButton.disabled = state.walletConnected && !canBuy();
+
+  if (!state.walletConnected) {
+    els.playButton.textContent = "Connect Wallet to Play";
+  } else if (state.status === "closed") {
+    els.playButton.textContent = "Round Closed";
+  } else if (state.status === "drawing") {
+    els.playButton.textContent = "VRF Draw Pending";
+  } else if (state.status === "settled") {
+    els.playButton.textContent = "Round Settled";
+  } else if (!hasValidNumbers) {
+    els.playButton.textContent = "Choose Numbers";
+  } else {
+    els.playButton.textContent = `Buy ${state.ticketQuantity} Ticket${
+      state.ticketQuantity === 1 ? "" : "s"
+    } - ${formatUsd(totalPrice)}`;
+  }
+
+  document.querySelectorAll("[data-quantity]").forEach((button) => {
+    button.classList.toggle(
+      "is-selected",
+      Number(button.dataset.quantity) === state.ticketQuantity && !state.customQuantityOpen
+    );
+  });
+  els.customQuantityButton.classList.toggle("is-selected", state.customQuantityOpen);
 }
 
 function renderDraw() {
@@ -355,48 +389,15 @@ function renderDraw() {
   els.vrfBadge.className = "vrf-badge";
   els.vrfBadge.textContent = "Verified by MagicBlock VRF";
   els.vrfBadge.href = PROOF_TX;
-
-  const balls = [...state.winning.normals, state.winning.bonus]
+  els.drawStage.dataset.animation = String(state.animationNonce);
+  els.drawStage.innerHTML = [...state.winning.normals, state.winning.bonus]
     .map((number, index) => {
       const isBonus = index === 5;
-      const delay = index * 190;
-      return `<span class="draw-ball ${isBonus ? "bonus" : ""}" style="animation-delay:${delay}ms">${number}</span>`;
+      return `<span class="draw-ball ${isBonus ? "bonus" : ""}" style="animation-delay:${
+        index * 190
+      }ms">${number}</span>`;
     })
     .join("");
-
-  els.drawStage.dataset.animation = String(state.animationNonce);
-  els.drawStage.innerHTML = balls;
-}
-
-function renderPicker() {
-  const openForPicking = state.status === "open";
-
-  els.normalGrid.querySelectorAll(".number-button").forEach((button) => {
-    const number = Number(button.dataset.number);
-    button.classList.toggle("selected", state.selectedNormals.includes(number));
-    button.disabled = !openForPicking;
-    button.setAttribute("aria-pressed", String(state.selectedNormals.includes(number)));
-  });
-
-  els.bonusGrid.querySelectorAll(".number-button").forEach((button) => {
-    const number = Number(button.dataset.bonus);
-    button.classList.toggle("selected", state.selectedBonus === number);
-    button.disabled = !openForPicking;
-    button.setAttribute("aria-pressed", String(state.selectedBonus === number));
-  });
-
-  els.quickPickButton.disabled = !openForPicking;
-  els.normalCount.textContent = `${state.selectedNormals.length}/5`;
-  els.bonusCount.textContent = `${state.selectedBonus === null ? 0 : 1}/1`;
-
-  const normals = state.selectedNormals.length
-    ? sortedNumbers(state.selectedNormals).join(" ")
-    : "None";
-  const bonus = state.selectedBonus === null ? "-" : state.selectedBonus;
-  els.selectionSummary.textContent = `${normals} + ${bonus}`;
-
-  els.buyButton.disabled = !canBuy();
-  els.disableReason.textContent = getDisableReason();
 }
 
 function renderTicket() {
@@ -432,29 +433,19 @@ function renderTicket() {
   els.resultState.textContent = state.claimed ? "Claimed" : result.didWin ? "Win" : "Lose";
 
   const ticketBalls = state.myTicket.normals
-    .map((number) =>
-      ballHtml(number, {
-        match: result.normalMatches.includes(number)
-      })
-    )
+    .map((number) => ballHtml(number, { match: result.normalMatches.includes(number) }))
     .join("");
-
   const winningBalls = state.winning.normals
-    .map((number) =>
-      ballHtml(number, {
-        match: state.myTicket.normals.includes(number)
-      })
-    )
+    .map((number) => ballHtml(number, { match: state.myTicket.normals.includes(number) }))
     .join("");
-
   const claimMarkup = result.didWin
     ? state.claimed
-      ? `<div class="claim-row"><span class="claimed-mark">Prize claimed</span><span class="claim-amount">${state.fixedPrize.toFixed(
-          3
-        )} SOL</span></div>`
-      : `<div class="claim-row"><span class="claim-amount">${state.fixedPrize.toFixed(
-          3
-        )} SOL</span><button class="claim-button" id="claimButton" type="button">Claim Prize</button></div>`
+      ? `<div class="claim-row"><span class="claimed-mark">Prize claimed</span><span class="claim-amount">${formatUsd(
+          state.fixedPrize
+        )}</span></div>`
+      : `<div class="claim-row"><span class="claim-amount">${formatUsd(
+          state.fixedPrize
+        )}</span><button class="claim-button" id="claimButton" type="button">Claim Prize</button></div>`
     : "";
 
   els.ticketView.innerHTML = `
@@ -495,11 +486,55 @@ function renderTicket() {
   }
 }
 
+function renderPicker() {
+  const openForPicking = state.status === "open";
+
+  els.normalGrid.querySelectorAll(".number-button").forEach((button) => {
+    const number = Number(button.dataset.number);
+    button.classList.toggle("selected", state.selectedNormals.includes(number));
+    button.disabled = !openForPicking;
+    button.setAttribute("aria-pressed", String(state.selectedNormals.includes(number)));
+  });
+
+  els.bonusGrid.querySelectorAll(".number-button").forEach((button) => {
+    const number = Number(button.dataset.bonus);
+    button.classList.toggle("selected", state.selectedBonus === number);
+    button.disabled = !openForPicking;
+    button.setAttribute("aria-pressed", String(state.selectedBonus === number));
+  });
+}
+
+function createNumberButtons() {
+  for (let number = 1; number <= 20; number += 1) {
+    const button = document.createElement("button");
+    button.className = "number-button";
+    button.type = "button";
+    button.textContent = number;
+    button.dataset.number = String(number);
+    button.addEventListener("click", () => toggleNormal(number));
+    els.normalGrid.append(button);
+  }
+
+  for (let number = 1; number <= 10; number += 1) {
+    const button = document.createElement("button");
+    button.className = "number-button bonus";
+    button.type = "button";
+    button.textContent = number;
+    button.dataset.bonus = String(number);
+    button.addEventListener("click", () => {
+      state.selectedBonus = state.selectedBonus === number ? null : number;
+      render();
+    });
+    els.bonusGrid.append(button);
+  }
+}
+
 function render() {
   renderHeader();
-  renderRound();
-  renderDraw();
+  renderHero();
+  renderPlayCard();
   renderPicker();
+  renderDraw();
   renderTicket();
 }
 
@@ -508,14 +543,35 @@ function attachEvents() {
     state.walletConnected = !state.walletConnected;
     render();
   });
-
   els.quickPickButton.addEventListener("click", quickPick);
-  els.buyButton.addEventListener("click", buyTicket);
+  els.quantityMinus.addEventListener("click", () => setTicketQuantity(state.ticketQuantity - 1));
+  els.quantityPlus.addEventListener("click", () => setTicketQuantity(state.ticketQuantity + 1));
+  els.customQuantityButton.addEventListener("click", () => {
+    state.customQuantityOpen = !state.customQuantityOpen;
+    render();
+  });
+  els.customQuantityInput.addEventListener("change", (event) => {
+    setTicketQuantity(Number(event.target.value));
+  });
+  els.playButton.addEventListener("click", playTicket);
+  els.numbersToggle.addEventListener("click", () => {
+    state.numbersOpen = !state.numbersOpen;
+    render();
+  });
+  els.fairnessGotIt.addEventListener("click", () => {
+    els.fairnessGotIt.classList.add("is-acknowledged");
+    els.fairnessGotIt.textContent = "Noted";
+  });
+  document.querySelectorAll("[data-quantity]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.customQuantityOpen = false;
+      setTicketQuantity(Number(button.dataset.quantity));
+    });
+  });
   els.createRoundButton.addEventListener("click", createRound);
   els.closeRoundButton.addEventListener("click", () => setStatus("closed"));
   els.requestVrfButton.addEventListener("click", () => setStatus("drawing"));
   els.mockSettleButton.addEventListener("click", mockSettle);
-
   document.querySelectorAll(".scenario-button").forEach((button) => {
     button.addEventListener("click", () => setScenario(button.dataset.scenario));
   });
