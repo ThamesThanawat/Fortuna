@@ -468,7 +468,7 @@ input:focus-visible {
   background:
     url("/assets/ayara/star-red.png") top 28px left 28px / 26px 24px no-repeat,
     url("/assets/ayara/star-blue.png") top 28px right 28px / 26px 24px no-repeat,
-    url("/assets/ayara/flower.png") bottom 22px left 26px / 118px 114px no-repeat,
+    url("/assets/ayara/flower.png") bottom 18px left 20px / 78px 74px no-repeat,
     url("/assets/ayara/corner-ornament.png") top 12px left 12px / 42px 42px no-repeat,
     url("/assets/ayara/corner-ornament.png") top 12px right 12px / 42px 42px no-repeat,
     linear-gradient(rgba(255, 253, 245, 0.92), rgba(255, 246, 226, 0.96)),
@@ -909,6 +909,21 @@ h2 {
   background: rgba(255, 253, 245, 0.64);
 }
 
+.lock-banner {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  color: #9d332d;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1.4;
+  text-align: center;
+  border: 1px solid rgba(207, 77, 67, 0.3);
+  border-radius: var(--radius);
+  background: rgba(247, 207, 219, 0.5);
+}
+
 .transaction-status p,
 .transaction-status a,
 .play-note,
@@ -1071,7 +1086,7 @@ h2 {
 .draw-strip {
   background:
     url("/assets/ayara/star-red.png") top 24px right 24px / 24px 22px no-repeat,
-    url("/assets/ayara/flower.png") bottom 18px left 20px / 92px 88px no-repeat,
+    url("/assets/ayara/flower.png") bottom 16px left 18px / 66px 62px no-repeat,
     linear-gradient(rgba(255, 253, 245, 0.93), rgba(255, 240, 232, 0.96)),
     url("/assets/ayara/paper-bg.png") center / cover no-repeat,
     repeating-linear-gradient(0deg, rgba(207, 77, 67, 0.045) 0 1px, transparent 1px 14px),
@@ -1090,6 +1105,14 @@ h2 {
   margin-top: 5px;
   color: #9d332d;
   font-size: 13px;
+}
+
+.draw-pending em {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-style: normal;
 }
 
 .draw-loader {
@@ -1422,6 +1445,25 @@ h2 {
   font-weight: 950;
 }
 
+.claim-success {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(28, 103, 84, 0.28);
+  border-radius: var(--radius);
+  background: rgba(220, 236, 197, 0.45);
+}
+
+.claim-success strong {
+  color: #1c6754;
+  font-weight: 950;
+}
+
+.claim-success span {
+  color: var(--ink-soft);
+}
+
 .prize-card,
 .fairness-card {
   background:
@@ -1608,6 +1650,21 @@ h2 {
   text-align: center;
   white-space: normal;
   background: rgba(247, 207, 219, 0.42);
+}
+
+.admin-hint {
+  position: relative;
+  z-index: 1;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 253, 245, 0.7);
 }
 
 .admin-actions {

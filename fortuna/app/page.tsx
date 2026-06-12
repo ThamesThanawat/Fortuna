@@ -629,6 +629,14 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
               <span className="price-pill">Ticket Price · $1</span>
             </div>
 
+            {status !== "open" ? (
+              <p className="lock-banner" role="status">
+                {hasPurchased
+                  ? "Ticket purchased. Draw closed — ticket sales are now locked."
+                  : "Draw closed. Ticket sales are now locked."}
+              </p>
+            ) : null}
+
             <div className="ticket-preview" aria-label="Ticket preview">
               <div className="ticket-preview-top">
                 <span>Main Numbers</span>
@@ -832,8 +840,12 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
                 <div className="draw-pending">
                   <span className="draw-loader" aria-hidden="true" />
                   <span>
-                    Waiting for draw
-                    <strong>MagicBlock VRF pending</strong>
+                    VRF requested — awaiting callback
+                    <strong>
+                      For this hackathon demo, use Mock Settle to complete
+                      settlement.
+                    </strong>
+                    <em>Production path: MagicBlock VRF</em>
                   </span>
                 </div>
               ) : winning ? (
@@ -867,7 +879,11 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
                 </div>
                 <p className="mock-disclosure">
                   Demo Settlement
-                  <span>Production path: MagicBlock VRF</span>
+                  <span>
+                    Mock Settle completes the demo draw using deterministic demo
+                    randomness. Production would settle from the MagicBlock VRF
+                    callback.
+                  </span>
                 </p>
               </>
             ) : null}
@@ -1066,12 +1082,16 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
                           onClick={() => setClaimed(true)}
                           type="button"
                         >
-                          {claimed ? "Prize claimed" : "Claim Prize"}
+                          {claimed ? "Claimed" : "Claim Prize"}
                         </button>
                       </div>
                       {claimed ? (
-                        <p className="claim-success">
-                          Success: prize claim marked in demo state.
+                        <p className="claim-success" role="status">
+                          <strong>Demo prize claimed</strong>
+                          <span>
+                            In production, prize funds would transfer from the
+                            prize vault.
+                          </span>
                         </p>
                       ) : null}
                     </>
@@ -1150,10 +1170,11 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
           <div className="admin-actions" aria-label="Admin actions">
             <button
               className="admin-button"
+              disabled={status !== "open"}
               onClick={() => setStatus("closed")}
               type="button"
             >
-              Close Draw
+              {status === "open" ? "Close Draw" : "Draw Closed"}
             </button>
             <button
               className="admin-button"
@@ -1173,6 +1194,16 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
               Reset Demo
             </button>
           </div>
+
+          <p className="admin-hint" role="status">
+            {status === "open"
+              ? "Step 1 — Close Draw to lock ticket sales."
+              : status === "closed"
+                ? "Draw closed. Request VRF, then use Mock Settle to complete the demo draw."
+                : status === "drawing"
+                  ? "VRF requested — awaiting callback. For this hackathon demo, use Mock Settle to complete settlement. Production path: MagicBlock VRF."
+                  : "Mock Settle completed the demo draw using deterministic demo randomness. Production would settle from the MagicBlock VRF callback."}
+          </p>
         </section>
 
         <p className="site-disclaimer">
