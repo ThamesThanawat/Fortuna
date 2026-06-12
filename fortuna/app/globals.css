@@ -525,11 +525,11 @@ input:focus-visible {
   margin: 8px 0 0;
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 56px;
+  font-size: 72px;
   font-weight: 950;
-  line-height: 0.95;
-  letter-spacing: 0;
-  text-shadow: 3px 3px 0 rgba(255, 226, 138, 0.8);
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  text-shadow: 4px 4px 0 rgba(255, 226, 138, 0.9);
 }
 
 .hero-prize-label {
@@ -546,10 +546,10 @@ input:focus-visible {
 }
 
 .tagline {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   color: var(--red);
   font-family: var(--serif);
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.15;
 }
 
@@ -564,42 +564,51 @@ input:focus-visible {
 .draw-board {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 14px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
+  gap: 4px;
+  margin-top: 20px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .draw-board div {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4px;
-  min-height: 50px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line-soft);
+  gap: 2px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(34, 51, 74, 0.06);
 }
 
 .draw-board div:nth-child(5n + 1) {
-  background: rgba(207, 231, 247, 0.52);
+  background: rgba(207, 231, 247, 0.22);
 }
 
 .draw-board div:nth-child(5n + 2) {
-  background: rgba(247, 207, 219, 0.52);
+  background: rgba(247, 207, 219, 0.22);
 }
 
 .draw-board div:nth-child(5n + 3) {
-  background: rgba(220, 236, 197, 0.56);
+  background: rgba(220, 236, 197, 0.24);
 }
 
 .draw-board div:nth-child(5n + 4) {
-  background: rgba(255, 226, 138, 0.52);
+  background: rgba(255, 226, 138, 0.22);
 }
 
 .draw-board div:nth-child(5n) {
-  background: rgba(246, 193, 121, 0.48);
+  background: rgba(246, 193, 121, 0.20);
 }
 
-.draw-board span,
+.draw-board span {
+  color: #9aab9e;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .preview-meta span,
 .summary-label,
 .picker-label,
@@ -613,7 +622,13 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
-.draw-board strong,
+.draw-board strong {
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 950;
+}
+
 .preview-meta strong,
 .summary-value,
 .ticket-meta-grid strong {
