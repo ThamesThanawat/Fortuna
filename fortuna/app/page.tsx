@@ -123,11 +123,13 @@ function TicketBall({
   number,
   bonus = false,
   match = false,
+  noMatch = false,
   large = false,
 }: {
   number: number;
   bonus?: boolean;
   match?: boolean;
+  noMatch?: boolean;
   large?: boolean;
 }) {
   return (
@@ -136,6 +138,7 @@ function TicketBall({
         "ticket-ball",
         bonus ? "bonus" : "",
         match ? "match" : "",
+        noMatch ? "no-match" : "",
         large ? "large" : "",
       ]
         .filter(Boolean)
@@ -970,13 +973,17 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
                   <div className="ticket-block">
                     <h3>Main Numbers</h3>
                     <div className="ticket-balls">
-                      {myTicket.normals.map((number) => (
-                        <TicketBall
-                          key={number}
-                          match={result.normalMatches.includes(number)}
-                          number={number}
-                        />
-                      ))}
+                      {myTicket.normals.map((number) => {
+                        const isMatch = result.normalMatches.includes(number);
+                        return (
+                          <TicketBall
+                            key={number}
+                            match={isMatch}
+                            noMatch={!isMatch}
+                            number={number}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="ticket-block">
@@ -1014,9 +1021,9 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
                   <div className="barcode-strip" aria-hidden="true" />
                   {result.didWin ? (
                     <p className="result-copy result-win-copy">
-                      <strong>Winning Ticket</strong>
-                      <span>Matched 3 numbers + bonus ball</span>
-                      <span>Claimable: {formatUsd(CLAIM_AMOUNT, true)}</span>
+                      <strong>Matched {result.normalMatches.length} numbers + bonus ball</strong>
+                      <span>Demo Prize · Claimable: {formatUsd(CLAIM_AMOUNT, true)}</span>
+                      <span className="jackpot-note">(Jackpot requires 5 numbers + bonus ball = {formatUsd(FIRST_PRIZE)})</span>
                     </p>
                   ) : (
                     <p className="result-copy">
