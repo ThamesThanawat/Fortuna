@@ -424,12 +424,12 @@ input:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    linear-gradient(rgba(255, 253, 245, 0.84), rgba(255, 248, 232, 0.9)),
-    url("/assets/ayara/paper-bg.png"),
+    url("/assets/ayara/corner-ornament.png") top 12px left 12px / 42px 42px no-repeat,
+    url("/assets/ayara/corner-ornament.png") top 12px right 12px / 42px 42px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.9), rgba(255, 248, 232, 0.94)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
     linear-gradient(90deg, var(--blue) 0 7px, transparent 7px calc(100% - 7px), var(--pink) calc(100% - 7px)),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
   box-shadow: 0 16px 44px rgba(78, 61, 32, 0.16);
 }
 
@@ -466,11 +466,16 @@ input:focus-visible {
   padding: 22px 18px;
   text-align: center;
   background:
-    linear-gradient(rgba(255, 253, 245, 0.9), rgba(255, 246, 226, 0.92)),
-    url("/assets/ayara/current-draw-ticket.png"),
+    url("/assets/ayara/star-red.png") top 28px left 28px / 26px 24px no-repeat,
+    url("/assets/ayara/star-blue.png") top 28px right 28px / 26px 24px no-repeat,
+    url("/assets/ayara/flower.png") bottom 22px left 26px / 118px 114px no-repeat,
+    url("/assets/ayara/corner-ornament.png") top 12px left 12px / 42px 42px no-repeat,
+    url("/assets/ayara/corner-ornament.png") top 12px right 12px / 42px 42px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.92), rgba(255, 246, 226, 0.96)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
+    repeating-linear-gradient(0deg, rgba(34, 51, 74, 0.028) 0 1px, transparent 1px 11px),
+    linear-gradient(90deg, rgba(247, 207, 219, 0.9) 0 54px, transparent 54px calc(100% - 54px), rgba(207, 231, 247, 0.9) calc(100% - 54px)),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
 }
 
 .hero-content {
@@ -697,11 +702,13 @@ input:focus-visible {
 .play-card {
   max-width: 600px;
   background:
-    linear-gradient(rgba(255, 253, 245, 0.92), rgba(239, 247, 255, 0.94)),
-    url("/assets/ayara/number-picker.png"),
+    url("/assets/ayara/star-blue.png") top 24px right 24px / 24px 23px no-repeat,
+    url("/assets/ayara/corner-ornament.png") top 12px left 12px / 38px 38px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.93), rgba(239, 247, 255, 0.96)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
+    repeating-linear-gradient(90deg, rgba(20, 87, 188, 0.04) 0 1px, transparent 1px 16px),
+    linear-gradient(90deg, rgba(207, 231, 247, 0.9) 0 8px, transparent 8px calc(100% - 8px), rgba(207, 231, 247, 0.9) calc(100% - 8px)),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
 }
 
 .panel-heading,
@@ -1041,11 +1048,13 @@ h2 {
 
 .draw-strip {
   background:
-    linear-gradient(rgba(255, 253, 245, 0.92), rgba(255, 240, 232, 0.94)),
-    url("/assets/ayara/draw-results.png"),
+    url("/assets/ayara/star-red.png") top 24px right 24px / 24px 22px no-repeat,
+    url("/assets/ayara/flower.png") bottom 18px left 20px / 92px 88px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.93), rgba(255, 240, 232, 0.96)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
+    repeating-linear-gradient(0deg, rgba(207, 77, 67, 0.045) 0 1px, transparent 1px 14px),
+    linear-gradient(90deg, rgba(247, 207, 219, 0.95) 0 8px, transparent 8px calc(100% - 8px), rgba(246, 193, 121, 0.75) calc(100% - 8px)),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
 }
 
 .draw-pending {
@@ -1388,21 +1397,23 @@ h2 {
 .prize-card,
 .fairness-card {
   background:
-    linear-gradient(rgba(255, 253, 245, 0.9), rgba(255, 248, 232, 0.94)),
-    url("/assets/ayara/prize-tiers.png"),
+    url("/assets/ayara/star-green.png") top 22px right 22px / 24px 24px no-repeat,
+    url("/assets/ayara/corner-ornament.png") top 12px left 12px / 38px 38px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.92), rgba(255, 248, 232, 0.96)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
+    repeating-linear-gradient(0deg, rgba(222, 110, 19, 0.038) 0 1px, transparent 1px 13px),
     linear-gradient(90deg, var(--green) 0 7px, transparent 7px calc(100% - 7px), var(--yellow) calc(100% - 7px)),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
 }
 
 .fairness-card {
   background:
-    linear-gradient(rgba(255, 253, 245, 0.9), rgba(239, 247, 255, 0.94)),
-    url("/assets/ayara/paper-bg.png"),
+    url("/assets/ayara/star-blue.png") top 22px right 22px / 24px 23px no-repeat,
+    url("/assets/ayara/corner-ornament.png") top 12px left 12px / 38px 38px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.92), rgba(239, 247, 255, 0.96)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
+    repeating-linear-gradient(0deg, rgba(20, 87, 188, 0.036) 0 1px, transparent 1px 13px),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
 }
 
 .prize-tier-list,
@@ -1549,12 +1560,13 @@ h2 {
   padding: 18px;
   border-style: dashed;
   background:
-    linear-gradient(rgba(255, 253, 245, 0.9), rgba(246, 241, 255, 0.94)),
-    url("/assets/ayara/demo-controls.png"),
+    url("/assets/ayara/star-blue.png") top 22px left 22px / 24px 23px no-repeat,
+    url("/assets/ayara/star-red.png") top 22px right 22px / 24px 22px no-repeat,
+    linear-gradient(rgba(255, 253, 245, 0.92), rgba(246, 241, 255, 0.96)),
+    url("/assets/ayara/paper-bg.png") center / cover no-repeat,
+    repeating-linear-gradient(90deg, rgba(92, 65, 152, 0.045) 0 1px, transparent 1px 16px),
     linear-gradient(90deg, var(--orange) 0 7px, transparent 7px calc(100% - 7px), var(--blue) calc(100% - 7px)),
     linear-gradient(180deg, #fffdf5, var(--paper));
-  background-position: center;
-  background-size: cover;
 }
 
 .admin-note {
