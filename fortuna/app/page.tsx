@@ -1022,7 +1022,8 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
                   {result.didWin ? (
                     <p className="result-copy result-win-copy">
                       <strong>Matched {result.normalMatches.length} numbers + bonus ball</strong>
-                      <span>Demo Prize · Claimable: {formatUsd(CLAIM_AMOUNT, true)}</span>
+                      <span>Prize Tier: Demo Prize</span>
+                      <span>Claimable: {formatUsd(CLAIM_AMOUNT, true)}</span>
                       <span className="jackpot-note">(Jackpot requires 5 numbers + bonus ball = {formatUsd(FIRST_PRIZE)})</span>
                     </p>
                   ) : (
