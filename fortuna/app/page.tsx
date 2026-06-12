@@ -1,5 +1,6 @@
 "use client";
 
+import { AyaraMascot } from "@/components/AyaraMascot";
 import { useMemo, useState } from "react";
 import {
   ConnectionProvider,
@@ -273,6 +274,11 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
   const ticketId = `AYARA-${String(roundId).padStart(3, "0")}-${
     purchaseSignature ? purchaseSignature.slice(0, 6).toUpperCase() : "DEMO01"
   }`;
+  const ticketMascotVariant = claimed
+    ? "claimed"
+    : result?.didWin
+      ? "happy"
+      : "ticket";
 
   function setStatus(nextStatus: RoundStatus) {
     setStatusState(nextStatus);
@@ -473,9 +479,7 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
 
       <header className="topbar" aria-label="Ayara header">
         <a className="brand" href="#" aria-label="Ayara home">
-          <span className="brand-mark" aria-hidden="true">
-            A
-          </span>
+          <AyaraMascot className="brand-mascot" variant="icon" />
           <span>
             <span className="brand-word">Ayara</span>
             <span className="brand-tagline">
@@ -570,6 +574,7 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
 
       <main className="page-shell">
         <section className="jackpot-hero" aria-labelledby="prizeTitle">
+          <AyaraMascot className="floating-mascot" variant="guide" />
           <div className="hero-content">
             <div className="ticket-stamp-row" aria-label="Current draw details">
               <span>Serial {DRAW_SERIAL}</span>
@@ -927,7 +932,22 @@ function AyaraPage({ providerError }: { providerError: string | null }) {
               </span>
             </div>
 
-            <div className="ticket-view">
+            <div
+              className={[
+                "ticket-view",
+                claimed
+                  ? "is-claimed"
+                  : result?.didWin
+                    ? "is-winning"
+                    : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <AyaraMascot
+                className="ticket-mascot-accent"
+                variant={ticketMascotVariant}
+              />
               {!myTicket ? (
                 <>
                   {renderTicketHeader()}

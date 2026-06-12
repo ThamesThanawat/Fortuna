@@ -132,47 +132,42 @@ input:focus-visible {
   order: 1;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: fit-content;
   color: var(--ink);
   text-decoration: none;
 }
 
-.brand-mark {
-  position: relative;
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border: 2px solid var(--red);
-  border-radius: 50%;
-  color: var(--red);
-  font-family: var(--serif);
-  font-size: 22px;
-  background: #fffdf5;
-  box-shadow: inset 0 0 0 3px rgba(207, 77, 67, 0.08);
+.ayara-mascot {
+  --ayara-mascot-size: 80px;
+  --ayara-mascot-position: 0% 0%;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--ayara-mascot-size);
+  aspect-ratio: 1;
+  background-image: url("/assets/ayara/ayara-elephant-sprite.png");
+  background-position: var(--ayara-mascot-position);
+  background-repeat: no-repeat;
+  background-size: 300% 200%;
 }
 
-.brand-mark::before,
-.brand-mark::after {
+.brand-mascot {
+  --ayara-mascot-size: 52px;
+  margin-left: -3px;
+  filter: drop-shadow(0 3px 0 rgba(34, 51, 74, 0.12));
+}
+
+.floating-mascot {
+  --ayara-mascot-size: 118px;
   position: absolute;
-  top: 10px;
-  width: 10px;
-  height: 14px;
-  border: 2px solid rgba(207, 77, 67, 0.45);
-  border-radius: 999px 999px 999px 4px;
-  content: "";
-  background: rgba(247, 207, 219, 0.38);
-}
-
-.brand-mark::before {
-  left: -6px;
-  transform: rotate(-18deg);
-}
-
-.brand-mark::after {
-  right: -6px;
-  transform: scaleX(-1) rotate(-18deg);
+  bottom: 16px;
+  left: 20px;
+  z-index: 0;
+  display: none;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 18px rgba(78, 61, 32, 0.18));
+  opacity: 0.34;
+  transform: rotate(-5deg);
 }
 
 .brand-word {
@@ -1211,6 +1206,7 @@ h2 {
   min-height: 170px;
   margin-top: 20px;
   position: relative;
+  overflow: hidden;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1223,6 +1219,36 @@ h2 {
   background-position: center;
   background-size: cover;
   box-shadow: inset 0 0 0 5px rgba(255, 226, 138, 0.22);
+}
+
+.ticket-view.is-winning {
+  border-color: rgba(207, 77, 67, 0.36);
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 226, 138, 0.24),
+    0 0 0 3px rgba(247, 207, 219, 0.24);
+}
+
+.ticket-view.is-claimed {
+  border-color: rgba(28, 103, 84, 0.38);
+  box-shadow:
+    inset 0 0 0 5px rgba(220, 236, 197, 0.32),
+    0 0 0 3px rgba(220, 236, 197, 0.26);
+}
+
+.ticket-view > :not(.ticket-mascot-accent) {
+  position: relative;
+  z-index: 1;
+}
+
+.ticket-mascot-accent {
+  --ayara-mascot-size: 126px;
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  transform: rotate(4deg);
 }
 
 .ticket-view::before,
@@ -1791,6 +1817,10 @@ button:disabled:hover {
     padding: 22px 28px;
   }
 
+  .floating-mascot {
+    display: inline-block;
+  }
+
   .prize-heading {
     font-size: 82px;
   }
@@ -1895,6 +1925,10 @@ button:disabled:hover {
 }
 
 @media (max-width: 430px) {
+  .brand-mascot {
+    --ayara-mascot-size: 46px;
+  }
+
   .prize-heading {
     font-size: 48px;
   }
@@ -1919,6 +1953,11 @@ button:disabled:hover {
     width: 47px;
     height: 47px;
     font-size: 16px;
+  }
+
+  .ticket-mascot-accent {
+    --ayara-mascot-size: 96px;
+    opacity: 0.12;
   }
 
   .debug-panel {
